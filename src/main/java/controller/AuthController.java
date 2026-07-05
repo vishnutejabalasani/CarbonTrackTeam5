@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import com.carbontrack.dto.LoginRequest;
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin("*")
+
 public class AuthController {
 
     private final AuthService authService;
