@@ -64,6 +64,7 @@ export default function LogActivity() {
   const [factor, setFactor] = useState(FALLBACK_FACTORS[category.activityTypes[0].value]);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
 
   useEffect(() => {
@@ -106,23 +107,38 @@ export default function LogActivity() {
 
   const currentUnit = category.activityTypes.find((t) => t.value === activityType)?.unit;
 
+  // ✅ VALIDATION: Check if quantity is valid (> 0)
+  const quantityValue = parseFloat(quantity);
+  const isQuantityValid = !isNaN(quantityValue) && quantityValue > 0;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
+    setError(null);
     setSuccess(false);
+
+    // ✅ Validate quantity before submission
+    if (!isQuantityValid) {
+      setError("Quantity must be greater than 0");
+      return;
+    }
+
+    setSubmitting(true);
     try {
       await logActivity({
         category: activeCategory,
         activityType,
-        quantity: parseFloat(quantity),
+        quantity: quantityValue,
         unit: currentUnit,
         logDate,
       });
       setSuccess(true);
       setQuantity("");
+      setError(null);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      alert(err.response?.data?.message || "Couldn't log this activity. Please try again.");
+      const errorMsg = err.response?.data?.message || "Couldn't log this activity. Please try again.";
+      setError(errorMsg);
+      console.error("Error logging activity:", err);
     } finally {
       setSubmitting(false);
     }
@@ -191,28 +207,46 @@ export default function LogActivity() {
                   type="number"
                   step="any"
                   min="0"
-                  required
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                   placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 pr-14 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className={`w-full border rounded-lg px-3 py-2.5 pr-14 text-sm focus:outline-none focus:ring-2 ${
+                    quantity && !isQuantityValid
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-brand-500"
+                  }`}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
                   {currentUnit}
                 </span>
               </div>
+              {/* ✅ Show validation error */}
+              {quantity && !isQuantityValid && (
+                <p className="text-xs text-red-600 mt-1">
+                  ⚠️ Quantity must be greater than 0
+                </p>
+              )}
             </div>
 
+            {/* ✅ Show success message */}
             {success && (
               <div className="bg-brand-50 border border-brand-200 text-brand-800 text-sm rounded-lg px-4 py-3">
                 ✓ Activity logged! Your dashboard has been updated.
               </div>
             )}
 
+            {/* ✅ Show error message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg px-4 py-3">
+                ✕ {error}
+              </div>
+            )}
+
+            {/* ✅ Updated button with validation */}
             <button
               type="submit"
-              disabled={submitting || !quantity}
-              className="w-full bg-brand-800 hover:bg-brand-900 text-white rounded-lg py-2.5 text-sm font-medium transition disabled:opacity-50"
+              disabled={submitting || !isQuantityValid}
+              className="w-full bg-brand-800 hover:bg-brand-900 disabled:bg-gray-400 text-white rounded-lg py-2.5 text-sm font-medium transition"
             >
               {submitting ? "Recording..." : "Record Activity"}
             </button>

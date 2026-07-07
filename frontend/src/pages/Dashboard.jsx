@@ -11,9 +11,12 @@ import {
   Leaf,
   Bike,
   Thermometer,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { getWeeklySummary, getRecentActivities } from "../api/activities";
 import { getCurrentGoal } from "../api/goals";
+import { CategoryPieChart, DailyEmissionsChart } from "../components/Charts";
 import SetGoalModal from "../components/SetGoalModal";
 
 export default function Dashboard() {
@@ -23,21 +26,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showGoalModal, setShowGoalModal] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [summaryData, logsData, goalData] = await Promise.allSettled([
-        getWeeklySummary(),
-        getRecentActivities(4),
-        getCurrentGoal(),
-      ]);
-      setSummary(summaryData.status === "fulfilled" ? summaryData.value : null);
-      setRecentLogs(logsData.status === "fulfilled" ? logsData.value : []);
-      setGoalState(goalData.status === "fulfilled" ? goalData.value : null);
-    } finally {
-      setLoading(false);
-    }
-  };
+ const loadData = async () => {
+   setLoading(true);
+   try {
+     const [summaryData, logsData] = await Promise.allSettled([
+       getWeeklySummary(),
+       getRecentActivities(4),
+       // Skip goals for now - it's causing 403
+       // getCurrentGoal(),
+     ]);
+     setSummary(summaryData.status === "fulfilled" ? summaryData.value : null);
+     setRecentLogs(logsData.status === "fulfilled" ? logsData.value : []);
+     // setGoalState(null);
+   } finally {
+     setLoading(false);
+   }
+ };
+
 
   useEffect(() => {
     loadData();
@@ -50,7 +55,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="p-8 max-w-7xl">
       <Header title={hasActivity ? "Weekly Summary" : "Overview"} />
 
       {hasActivity ? (
@@ -95,16 +100,21 @@ function PopulatedDashboard({ summary, recentLogs }) {
   const changeVsLastWeek = summary.percentChangeVsLastWeek ?? 0;
 
   return (
-    <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-      <div className="space-y-6">
-        {/* Current footprint card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Current footprint card */}
+      <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Footprint</p>
             <p className="text-3xl font-semibold text-brand-800">
               This Week: {summary.totalKgCo2e} kg CO2e
             </p>
-            <p className={`text-sm mt-1 ${changeVsLastWeek <= 0 ? "text-brand-600" : "text-red-500"}`}>
+            <p className={`text-sm mt-1 flex items-center gap-2 ${changeVsLastWeek <= 0 ? "text-brand-600" : "text-red-500"}`}>
+              {changeVsLastWeek <= 0 ? (
+                <TrendingDown size={16} />
+              ) : (
+                <TrendingUp size={16} />
+              )}
               Your carbon output is {Math.abs(changeVsLastWeek)}%{" "}
               {changeVsLastWeek <= 0 ? "lower" : "higher"} than last week. Great progress towards
               your sustainability goals!
@@ -118,64 +128,72 @@ function PopulatedDashboard({ summary, recentLogs }) {
             <p className="text-[11px] text-gray-400 mt-1">Weekly Target Usage · {percentUsed}% Used</p>
           </div>
 
-          <div className="space-y-2 shrink-0 ml-6">
+          <div className="space-y-2 mt-6">
             <CategoryStat icon={Car} label="Transport" value={summary.transportKg} color="category-transport" />
             <CategoryStat icon={Zap} label="Energy" value={summary.electricityKg} color="category-electricity" />
             <CategoryStat icon={Utensils} label="Food & Diet" value={summary.foodKg} color="category-food" />
           </div>
         </div>
 
-        {/* Recent activities */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">Recent Activities</h2>
-            <button className="text-sm text-brand-700 font-medium hover:underline">View All</button>
-          </div>
-          <div className="space-y-3">
-            {recentLogs.map((log) => (
-              <div key={log.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CategoryIcon category={log.category} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{log.activityType}</p>
-                    <p className="text-xs text-gray-500">{log.logDate}</p>
-                  </div>
+        {/* Right column */}
+        <div className="space-y-4">
+          <Link
+            to="/activity"
+            className="flex items-center justify-center gap-2 bg-brand-800 hover:bg-brand-900 text-white rounded-lg py-2.5 text-sm font-medium transition"
+          >
+            <Plus size={16} />
+            Log Activity
+          </Link>
+
+          <div className="bg-brand-800 text-white rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Leaf size={16} />
+              <p className="font-medium text-sm">Smart Recommendations</p>
+            </div>
+            <div className="space-y-3">
+              {(summary.recommendations || []).map((rec, i) => (
+                <div key={i} className="bg-white/10 rounded-lg p-3">
+                  <p className="text-sm font-medium">{rec.title}</p>
+                  <p className="text-xs text-brand-100 mt-0.5">{rec.description}</p>
                 </div>
-                <p className="text-sm font-semibold text-gray-900">
-                  {log.calculatedEmissionsKgCO2e?.toFixed(1)} kg
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button className="w-full text-center text-xs font-medium text-white/90 mt-3 py-2 border border-white/20 rounded-lg hover:bg-white/10 transition">
+              Explore All Tips
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Right column */}
-      <div className="space-y-4">
-        <Link
-          to="/activity"
-          className="flex items-center justify-center gap-2 bg-brand-800 hover:bg-brand-900 text-white rounded-lg py-2.5 text-sm font-medium transition"
-        >
-          <Plus size={16} />
-          Log Activity
-        </Link>
+      {/* Charts Section */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <CategoryPieChart days={7} />
+        <DailyEmissionsChart days={7} />
+      </div>
 
-        <div className="bg-brand-800 text-white rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Leaf size={16} />
-            <p className="font-medium text-sm">Smart Recommendations</p>
-          </div>
-          <div className="space-y-3">
-            {(summary.recommendations || []).map((rec, i) => (
-              <div key={i} className="bg-white/10 rounded-lg p-3">
-                <p className="text-sm font-medium">{rec.title}</p>
-                <p className="text-xs text-brand-100 mt-0.5">{rec.description}</p>
+      {/* Recent activities */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-gray-900">Recent Activities</h2>
+          <Link to="/history" className="text-sm text-brand-700 font-medium hover:underline">
+            View All
+          </Link>
+        </div>
+        <div className="space-y-3">
+          {recentLogs.map((log) => (
+            <div key={log.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CategoryIcon category={log.category} />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{log.activityType}</p>
+                  <p className="text-xs text-gray-500">{log.logDate}</p>
+                </div>
               </div>
-            ))}
-          </div>
-          <button className="w-full text-center text-xs font-medium text-white/90 mt-3 py-2 border border-white/20 rounded-lg hover:bg-white/10 transition">
-            Explore All Tips
-          </button>
+              <p className="text-sm font-semibold text-gray-900">
+                {log.calculatedEmissionsKgCO2e?.toFixed(1)} kg
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -283,7 +301,7 @@ function EmptyDashboard({ goal, onSetGoal }) {
 
 function CategoryStat({ icon: Icon, label, value, color }) {
   return (
-    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 min-w-[140px]">
+    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
       <div className={`w-7 h-7 rounded-md flex items-center justify-center bg-${color}/10 text-${color}`}>
         <Icon size={14} />
       </div>
