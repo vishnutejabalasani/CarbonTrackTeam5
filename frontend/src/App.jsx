@@ -7,7 +7,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import LogActivity from "./pages/LogActivity";
 import Placeholder from "./pages/Placeholder";
-
+import OAuthSuccess from "./pages/OAuthSuccess";
 export default function App() {
   return (
     <BrowserRouter>
@@ -15,6 +15,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/oauth-success" element={<OAuthSuccess />} />
 
           <Route
             element={
