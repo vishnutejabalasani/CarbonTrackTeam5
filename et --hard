@@ -1,0 +1,17 @@
+* [33m9a5a01b[m[33m ([m[1;31morigin/Vishnuteja[m[33m)[m Fix: Update pom.xml - Java 24 compatibility and Flyway 10.21.0 with PostgreSQL support
+*   [33m35dbba2[m[33m ([m[1;31morigin/master[m[33m)[m Merge pull request #2 from vishnutejabalasani/jayasri
+[31m|[m[32m\[m  
+[31m|[m *   [33m959879b[m[33m ([m[1;31morigin/jayasri[m[33m)[m Merge branch 'master' into jayasri
+[31m|[m [33m|[m[31m\[m  
+[31m|[m [33m|[m[31m/[m  
+[31m|[m[31m/[m[33m|[m   
+* [33m|[m [33me51d326[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Added Google Authentication changes
+* [33m|[m   [33m9b9dedc[m Merge pull request #1 from vishnutejabalasani/jayasri
+[35m|[m[36m\[m [33m\[m  
+[35m|[m [36m|[m * [33m519450d[m Add Activity endpoints, charts, and View History
+[35m|[m [36m|[m[36m/[m  
+[35m|[m * [33m81a87b4[m Feat: Complete activity logging feature with UI/UX and backend fixes
+[35m|[m[35m/[m  
+* [33m3e4c221[m Added JWT Authentication
+* [33m4f1927b[m feat: Add database schema with JPA entities and Flyway migrations
+* [33me1bced0[m Initial Spring Boot project setup
