@@ -82,4 +82,41 @@ public class ActivityController {
     public ResponseEntity<Map<String, Object>> getWeeklySummary() {
         return ResponseEntity.ok(activityService.getWeeklySummary());
     }
+    @GetMapping("/aggregation/category")
+    public ResponseEntity<?> getCategoryAggregation(
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+
+        return ResponseEntity.ok(
+                activityService.getEmissionsByCategory(
+                        LocalDate.parse(startDate),
+                        LocalDate.parse(endDate)
+                )
+        );
+    }
+
+    @GetMapping("/aggregation/date")
+    public ResponseEntity<?> getDateAggregation(
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+
+        return ResponseEntity.ok(
+                activityService.getEmissionsByDate(
+                        LocalDate.parse(startDate),
+                        LocalDate.parse(endDate)
+                )
+        );
+    }
+    @GetMapping("/peer-benchmark")
+    public ResponseEntity<?> getPeerBenchmark() {
+        return ResponseEntity.ok(
+                activityService.getPeerBenchmarking()
+        );
+    }
+    @GetMapping("/organization-dashboard")
+    public ResponseEntity<?> getOrganizationDashboard() {
+        return ResponseEntity.ok(
+                activityService.getOrganizationDashboard()
+        );
+    }
 }
