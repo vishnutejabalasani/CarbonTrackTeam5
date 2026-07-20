@@ -294,7 +294,7 @@ public class VisionService {
     }
 
     private Map<String, Object> callGeminiVision(byte[] imageBytes, String mimeType) throws Exception {
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey;
 
         String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 

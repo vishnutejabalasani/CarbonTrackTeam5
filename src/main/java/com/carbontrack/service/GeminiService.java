@@ -40,7 +40,7 @@ public class GeminiService {
         }
 
         try {
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey;
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey;
 
             String jsonSchema = "{"
                     + "  \"type\": \"OBJECT\","
@@ -84,7 +84,7 @@ public class GeminiService {
         }
 
         try {
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey;
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey;
 
             StringBuilder history = new StringBuilder();
             for (Object[] row : dailySum) {
@@ -124,7 +124,7 @@ public class GeminiService {
         }
 
         try {
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey;
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey;
 
             String prompt = "You are the mythical Forest Guardian, an ancient druid protector of a virtual carbon forest. "
                     + "The user's weekly carbon emissions: " + weeklyEmissions + " kg. "
@@ -145,7 +145,7 @@ public class GeminiService {
         }
 
         try {
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey;
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey;
 
             String prompt = "You are a friendly, expert AI Green Coach assisting users in carbon footprint tracking. "
                     + "The user's current weekly carbon score: " + weeklyEmissions + " kg. "
