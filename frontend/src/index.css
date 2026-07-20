@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-50: #f0f7f0;
   --color-brand-100: #dcedde;
@@ -24,4 +26,83 @@
 body {
   font-family: var(--font-sans);
   background-color: #f7f9f7;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark Mode support */
+.dark body {
+  background-color: #08110b !important;
+  color: #e2ede5;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Glassmorphism glass card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark .glass-card {
+  background: rgba(13, 31, 16, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Pulsing neon border */
+@keyframes neon-pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(61, 131, 71, 0.2), 0 0 10px rgba(61, 131, 71, 0.1);
+    border-color: rgba(61, 131, 71, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(61, 131, 71, 0.4), 0 0 20px rgba(61, 131, 71, 0.2);
+    border-color: rgba(61, 131, 71, 0.8);
+  }
+}
+
+@keyframes neon-pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(224, 92, 92, 0.2), 0 0 10px rgba(224, 92, 92, 0.1);
+    border-color: rgba(224, 92, 92, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(224, 92, 92, 0.4), 0 0 20px rgba(224, 92, 92, 0.2);
+    border-color: rgba(224, 92, 92, 0.8);
+  }
+}
+
+.pulse-border-green {
+  animation: neon-pulse-green 3s infinite ease-in-out;
+}
+
+.pulse-border-red {
+  animation: neon-pulse-red 3s infinite ease-in-out;
+}
+
+/* Leaves drift animation */
+@keyframes leaf-drift {
+  0% {
+    transform: translateY(-20px) translateX(0px) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  85% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(180px) translateX(60px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.anim-leaf {
+  animation: leaf-drift 8s infinite linear;
 }

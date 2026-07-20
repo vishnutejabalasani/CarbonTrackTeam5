@@ -18,9 +18,9 @@ public interface ActivityRepository extends JpaRepository<ActivityLog, Long> {
     List<ActivityLog> findByUserOrderByLogDateDesc(User user);
 
     @Query("SELECT a FROM ActivityLog a WHERE a.user = :user " +
-           "AND (:category IS NULL OR LOWER(a.category) = LOWER(:category)) " +
-           "AND (cast(:startDate as date) IS NULL OR a.logDate >= :startDate) " +
-           "AND (cast(:endDate as date) IS NULL OR a.logDate <= :endDate)")
+           "AND (coalesce(:category, a.category) = a.category) " +
+           "AND (coalesce(:startDate, a.logDate) <= a.logDate) " +
+           "AND (coalesce(:endDate, a.logDate) >= a.logDate)")
     Page<ActivityLog> findFiltered(
             @Param("user") User user,
             @Param("category") String category,
@@ -51,4 +51,7 @@ public interface ActivityRepository extends JpaRepository<ActivityLog, Long> {
 
     @Query("SELECT a.logDate, SUM(a.calculatedEmissionsKgCO2e) FROM ActivityLog a WHERE a.user = :user AND a.logDate >= :startDate AND a.logDate <= :endDate GROUP BY a.logDate ORDER BY a.logDate ASC")
     List<Object[]> aggregateEmissionsByDate(@Param("user") User user, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT a.category, a.logDate, SUM(a.calculatedEmissionsKgCO2e) FROM ActivityLog a WHERE a.user = :user AND a.logDate >= :startDate AND a.logDate <= :endDate GROUP BY a.category, a.logDate ORDER BY a.logDate ASC")
+    List<Object[]> aggregateEmissionsByCategoryAndDate(@Param("user") User user, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

@@ -24,15 +24,18 @@ public class GoalService {
     private final UserRepository userRepository;
     private final ActivityRepository activityRepository;
     private final BadgeService badgeService;
+    private final NotificationService notificationService;
 
     public GoalService(GoalRepository goalRepository,
                        UserRepository userRepository,
                        ActivityRepository activityRepository,
-                       BadgeService badgeService) {
+                       BadgeService badgeService,
+                       NotificationService notificationService) {
         this.goalRepository = goalRepository;
         this.userRepository = userRepository;
         this.activityRepository = activityRepository;
         this.badgeService = badgeService;
+        this.notificationService = notificationService;
     }
 
     private User getAuthenticatedUser() {
@@ -48,14 +51,15 @@ public class GoalService {
 
         // 1. Abandon existing active goals
         List<Goal> activeGoals = goalRepository.findByUserAndStatus(user, "active");
-        for (Goal oldGoal : activeGoals) {
-            oldGoal.setStatus("abandoned");
-            goalRepository.save(oldGoal);
+        for (Goal activeGoal : activeGoals) {
+            activeGoal.setStatus("abandoned");
+            goalRepository.save(activeGoal);
         }
 
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = request.getTimeframe().equalsIgnoreCase("weekly") ? startDate.plusDays(7) : startDate.plusDays(30);
 
+        // 2. Create and persist new Goal
         Goal goal = Goal.builder()
                 .user(user)
                 .title("Reduce carbon emissions by " + request.getTargetReductionPercent() + "%")
@@ -68,12 +72,9 @@ public class GoalService {
                 .onTrack(true)
                 .build();
 
-        Goal savedGoal = goalRepository.save(goal);
-        
-        // Check for badges
-        badgeService.checkForBadges(user);
-
-        return mapToResponse(savedGoal);
+        Goal saved = goalRepository.save(goal);
+        updateGoalProgress(saved);
+        return mapToResponse(saved);
     }
 
     @Transactional
@@ -83,24 +84,18 @@ public class GoalService {
         if (activeGoals.isEmpty()) {
             return null;
         }
-        Goal goal = activeGoals.get(0);
-        updateGoalProgress(goal);
-        return mapToResponse(goal);
+        Goal active = activeGoals.get(0);
+        updateGoalProgress(active);
+        return mapToResponse(active);
     }
 
     @Transactional
     public List<GoalResponse> getGoalHistory() {
         User user = getAuthenticatedUser();
-        List<Goal> goals = goalRepository.findByUser(user);
-        
-        // Refresh progress of active goals on history query
-        for (Goal goal : goals) {
-            if ("active".equalsIgnoreCase(goal.getStatus())) {
-                updateGoalProgress(goal);
-            }
-        }
-        
-        return goals.stream().map(this::mapToResponse).toList();
+        List<Goal> all = goalRepository.findByUserOrderByStartDateDesc(user);
+        // Refresh active goals
+        all.stream().filter(g -> "active".equalsIgnoreCase(g.getStatus())).forEach(this::updateGoalProgress);
+        return all.stream().map(this::mapToResponse).toList();
     }
 
     private void updateGoalProgress(Goal goal) {
@@ -114,12 +109,8 @@ public class GoalService {
         LocalDate queryEnd = now.isBefore(end) ? now : end;
 
         // Calculate current emissions in this goal's period
-        List<ActivityLog> logs = activityRepository.findByUserOrderByLogDateDesc(user).stream()
-                .filter(a -> a.getLogDate().isAfter(start.minusDays(1)) && a.getLogDate().isBefore(queryEnd.plusDays(1)))
-                .toList();
-        double currentEmissions = logs.stream()
-                .mapToDouble(a -> a.getCalculatedEmissionsKgCO2e() != null ? a.getCalculatedEmissionsKgCO2e() : 0.0)
-                .sum();
+        Double currentEmissionsVal = activityRepository.sumByUserAndDateRange(user, start, queryEnd);
+        double currentEmissions = currentEmissionsVal != null ? currentEmissionsVal : 0.0;
 
         long totalDays = ChronoUnit.DAYS.between(start, end);
         if (totalDays <= 0) totalDays = 7;
@@ -128,12 +119,7 @@ public class GoalService {
         if (elapsedDays > totalDays) elapsedDays = totalDays;
 
         // Determine baseline
-        double baseline = 200.0;
-        if (totalDays <= 10) {
-            baseline = calculateWeeklyBaseline(user, start);
-        } else {
-            baseline = calculateMonthlyBaseline(user, start);
-        }
+        double baseline = (totalDays <= 10) ? calculateWeeklyBaseline(user, start) : calculateMonthlyBaseline(user, start);
 
         double targetReductionPercent = goal.getTargetReductionPercentage();
         double targetReductionKg = baseline * (targetReductionPercent / 100.0);
@@ -148,9 +134,25 @@ public class GoalService {
 
         goal.setProgressPercentage(Math.round(progress * 10.0) / 10.0);
 
-        // On track if emissions so far are within the scaled allowance
-        double allowedSoFar = baseline * (1.0 - (targetReductionPercent / 100.0) * ((double) elapsedDays / totalDays));
-        goal.setOnTrack(currentEmissions <= allowedSoFar);
+        // Project whether the goal is on track based on recent trend (last 3 days)
+        LocalDate threeDaysAgo = now.minusDays(2);
+        LocalDate trendStart = start.isAfter(threeDaysAgo) ? start : threeDaysAgo;
+        long trendDays = ChronoUnit.DAYS.between(trendStart, now) + 1;
+
+        Double recentEmissionsSumVal = activityRepository.sumByUserAndDateRange(user, trendStart, now);
+        double recentEmissionsSum = recentEmissionsSumVal != null ? recentEmissionsSumVal : 0.0;
+        double avgDailyEmissionRate = recentEmissionsSum / trendDays;
+
+        long remainingDays = totalDays - elapsedDays;
+        if (remainingDays < 0) remainingDays = 0;
+        double projectedRemainingEmissions = avgDailyEmissionRate * remainingDays;
+        double projectedTotalEmissions = currentEmissions + projectedRemainingEmissions;
+
+        double allowedGoalTotal = baseline * (1.0 - (targetReductionPercent / 100.0));
+        boolean projectedOnTrack = projectedTotalEmissions <= allowedGoalTotal;
+
+        Boolean previousOnTrack = goal.getOnTrack();
+        goal.setOnTrack(projectedOnTrack);
 
         // Auto-complete goal if now is past end date
         if (now.isAfter(end) || now.isEqual(end)) {
@@ -160,33 +162,34 @@ public class GoalService {
             } else {
                 goal.setStatus("abandoned");
             }
+        } else {
+            // Check for trajectory change alerts
+            if (previousOnTrack != null && previousOnTrack != projectedOnTrack) {
+                String message;
+                if (!projectedOnTrack) {
+                    message = String.format("Correction Alert: Your recent carbon trend projects that you will miss your target reduction of %.0f%%. Try reducing travel or energy use!", targetReductionPercent);
+                } else {
+                    message = String.format("Encouragement Alert: Awesome job! Your recent emission trend projects you are back on track to meet your target reduction of %.0f%%!", targetReductionPercent);
+                }
+                notificationService.createNotification(user, message, "trajectory_change");
+            }
         }
         goalRepository.save(goal);
-        
+
         // Check for badges
         badgeService.checkForBadges(user);
     }
 
     private double calculateWeeklyBaseline(User user, LocalDate goalStartDate) {
         LocalDate startOfBaseline = goalStartDate.minusDays(7);
-        List<ActivityLog> baselineActivities = activityRepository.findByUserOrderByLogDateDesc(user).stream()
-                .filter(a -> a.getLogDate().isAfter(startOfBaseline.minusDays(1)) && a.getLogDate().isBefore(goalStartDate))
-                .toList();
-        double baselineSum = baselineActivities.stream()
-                .mapToDouble(a -> a.getCalculatedEmissionsKgCO2e() != null ? a.getCalculatedEmissionsKgCO2e() : 0.0)
-                .sum();
-        return baselineSum > 0 ? baselineSum : 200.0;
+        Double sum = activityRepository.sumByUserAndDateRange(user, startOfBaseline, goalStartDate.minusDays(1));
+        return (sum != null && sum > 0) ? sum : 200.0;
     }
 
     private double calculateMonthlyBaseline(User user, LocalDate goalStartDate) {
         LocalDate startOfBaseline = goalStartDate.minusDays(30);
-        List<ActivityLog> baselineActivities = activityRepository.findByUserOrderByLogDateDesc(user).stream()
-                .filter(a -> a.getLogDate().isAfter(startOfBaseline.minusDays(1)) && a.getLogDate().isBefore(goalStartDate))
-                .toList();
-        double baselineSum = baselineActivities.stream()
-                .mapToDouble(a -> a.getCalculatedEmissionsKgCO2e() != null ? a.getCalculatedEmissionsKgCO2e() : 0.0)
-                .sum();
-        return baselineSum > 0 ? baselineSum : 800.0;
+        Double sum = activityRepository.sumByUserAndDateRange(user, startOfBaseline, goalStartDate.minusDays(1));
+        return (sum != null && sum > 0) ? sum : 800.0;
     }
 
     private GoalResponse mapToResponse(Goal goal) {

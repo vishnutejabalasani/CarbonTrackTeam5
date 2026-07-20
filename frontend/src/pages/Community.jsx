@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { Users, Trophy, MessageSquare, Award, Flame, CheckCircle, Plus, Sparkles, Send, Heart, Eye } from "lucide-react";
 import { getLeaderboard } from "../api/analytics";
 import { useAuth } from "../context/AuthContext";
+import { getEarnedBadges } from "../api/badges";
 
 export default function Community() {
   const { user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState("leaderboard");
   const [joinedChallenges, setJoinedChallenges] = useState([1]);
   const [leaderboardData, setLeaderboardData] = useState([]);
+  const [earnedBadges, setEarnedBadges] = useState([]);
   const [posts, setPosts] = useState([
     {
       id: 1,
@@ -22,7 +24,7 @@ export default function Community() {
       id: 2,
       author: "David Chen",
       avatarBg: "bg-brand-850",
-      content: "Successfully completed a full week of commuting via train instead of driving my gasoline car. Saved roughly 18 kg of CO2! 🚆🙌",
+      content: "Successfully completed a week of commuting via train instead of driving my gasoline car. Saved roughly 18 kg of CO2! 🚆🙌",
       likes: 24,
       comments: 5,
       time: "5 hours ago",
@@ -40,11 +42,11 @@ export default function Community() {
   const [newPostContent, setNewPostContent] = useState("");
 
   const defaultLeaderboard = [
-    { rank: 1, name: "Sarah Jenkins", reduction: "42%", total: "85.2 kg", isCurrentUser: false },
-    { rank: 2, name: "David Chen", reduction: "38%", total: "98.0 kg", isCurrentUser: false },
-    { rank: 3, name: authUser ? `${authUser.fullName || authUser.username || "You"}` : "You (Vishnu)", reduction: "35%", total: "102.5 kg", isCurrentUser: true },
-    { rank: 4, name: "Elena Rostova", reduction: "29%", total: "115.1 kg", isCurrentUser: false },
-    { rank: 5, name: "Marcus Aurelius", reduction: "25%", total: "128.4 kg", isCurrentUser: false },
+    { rank: 1, name: "Sarah Jenkins", reduction: "42%", total: "85.2 kg", badges: [], isCurrentUser: false },
+    { rank: 2, name: "David Chen", reduction: "38%", total: "98.0 kg", badges: [], isCurrentUser: false },
+    { rank: 3, name: authUser ? `${authUser.fullName || authUser.username || "You"}` : "You (Vishnu)", reduction: "35%", total: "102.5 kg", badges: [], isCurrentUser: true },
+    { rank: 4, name: "Elena Rostova", reduction: "29%", total: "115.1 kg", badges: [], isCurrentUser: false },
+    { rank: 5, name: "Marcus Aurelius", reduction: "25%", total: "128.4 kg", badges: [], isCurrentUser: false },
   ];
 
   useEffect(() => {
@@ -57,6 +59,7 @@ export default function Community() {
             name: item.name,
             reduction: item.reduction,
             total: `${item.total} kg`,
+            badges: item.badges || [],
             isCurrentUser: authUser && (item.email === authUser.email || item.name === authUser.fullName || item.name === authUser.username)
           }));
           setLeaderboardData(mapped);
@@ -68,7 +71,18 @@ export default function Community() {
         setLeaderboardData(defaultLeaderboard);
       }
     }
+    async function loadBadges() {
+      try {
+        const badges = await getEarnedBadges();
+        setEarnedBadges(badges || []);
+      } catch (err) {
+        console.error("Failed to load badges:", err);
+      }
+    }
     loadLeaderboard();
+    if (authUser) {
+      loadBadges();
+    }
   }, [authUser]);
 
   const challenges = [
@@ -187,8 +201,28 @@ export default function Community() {
                         #{user.rank}
                       </div>
                       <div>
-                        <p className={`text-xs font-bold ${user.isCurrentUser ? "text-brand-900" : "text-slate-800"}`}>
-                          {user.name}
+                        <p className={`text-xs font-bold flex items-center gap-1.5 flex-wrap ${user.isCurrentUser ? "text-brand-900" : "text-slate-800"}`}>
+                          <span>{user.name}</span>
+                          {user.badges && user.badges.map(b => (
+                            <span
+                              key={b.id}
+                              className="text-[10px] select-none cursor-help bg-slate-100 hover:bg-slate-200 px-1 rounded transition"
+                              title={`${b.name}: ${b.description}`}
+                            >
+                              {b.name.includes("First Step") ? "🌱" :
+                               b.name.includes("Weekly Warrior") ? "🔥" :
+                               b.name.includes("Carbon Conscious") ? "✨" :
+                               b.name.includes("Goal Getter") ? "🏅" :
+                               b.name.includes("Green Champion") ? "🏆" :
+                               b.name.includes("Eco Warrior") ? "🛡️" :
+                               b.name.includes("Transport Hero") ? "🚗" :
+                               b.name.includes("First Goal Achieved") ? "🥇" :
+                               b.name.includes("Carbon Saver 10kg") ? "🥉" :
+                               b.name.includes("Carbon Saver 25kg") ? "🥈" :
+                               b.name.includes("Carbon Saver 50kg") ? "🏆" :
+                               "🎖️"}
+                            </span>
+                          ))}
                         </p>
                         <p className="text-[10px] text-slate-450 mt-0.5">Reduction Pace: {user.reduction}</p>
                       </div>
@@ -315,15 +349,38 @@ export default function Community() {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm space-y-3">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Active Impact Badges</h4>
-            <div className="flex gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-brand-850 bg-brand-50 border border-brand-100/50 px-2.5 py-1 rounded-full">
-                🌱 First Step
-              </span>
-              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-brand-850 bg-brand-50 border border-brand-100/50 px-2.5 py-1 rounded-full">
-                ⚡ Energy Smart
-              </span>
-            </div>
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Your Impact Badges</h4>
+            {earnedBadges.length > 0 ? (
+              <div className="flex gap-2 flex-wrap">
+                {earnedBadges.map((badge) => {
+                  const emojiMap = {
+                    "First Step": "🌱",
+                    "Weekly Warrior": "🔥",
+                    "Carbon Conscious": "✨",
+                    "Goal Getter": "🏅",
+                    "Green Champion": "🏆",
+                    "Eco Warrior": "🛡️",
+                    "Transport Hero": "🚗",
+                    "First Goal Achieved": "🥇",
+                    "Carbon Saver 10kg": "🥉",
+                    "Carbon Saver 25kg": "🥈",
+                    "Carbon Saver 50kg": "🏆",
+                  };
+                  const emoji = emojiMap[badge.name] || "🎖️";
+                  return (
+                    <span
+                      key={badge.id}
+                      className="inline-flex items-center gap-1 text-[9px] font-bold text-brand-850 bg-brand-50 border border-brand-100/50 px-2.5 py-1 rounded-full transition hover:scale-105"
+                      title={badge.description}
+                    >
+                      {emoji} {badge.name}
+                    </span>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-[10px] text-slate-400">No badges earned yet. Complete goals to unlock achievements!</p>
+            )}
           </div>
         </div>
       </div>

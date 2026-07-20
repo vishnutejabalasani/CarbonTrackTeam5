@@ -40,23 +40,56 @@ public class UserService {
     @Transactional(readOnly = true)
     public java.util.List<java.util.Map<String, Object>> getLeaderboard() {
         java.time.LocalDate start = java.time.LocalDate.now().minusDays(7);
+        java.time.LocalDate end = java.time.LocalDate.now();
+        
+        // 1. Fetch all users
         java.util.List<User> users = userRepository.findAll();
+        
+        // 2. Fetch all emissions aggregates for the last 7 days in a single query
+        java.util.List<Object[]> emissionsResults = activityRepository.sumAllUsersEmissionsInDateRange(start, end);
+        java.util.Map<Long, Double> userEmissionsMap = new java.util.HashMap<>();
+        for (Object[] row : emissionsResults) {
+            if (row[0] != null && row[1] != null) {
+                Long userId = ((Number) row[0]).longValue();
+                Double sum = ((Number) row[1]).doubleValue();
+                userEmissionsMap.put(userId, sum);
+            }
+        }
+        
+        // 3. Fetch all active goals in a single query
+        java.util.List<com.carbontrack.entity.Goal> activeGoals = goalRepository.findByStatus("active");
+        java.util.Map<Long, com.carbontrack.entity.Goal> userGoalsMap = new java.util.HashMap<>();
+        for (com.carbontrack.entity.Goal g : activeGoals) {
+            if (g.getUser() != null) {
+                userGoalsMap.put(g.getUser().getId(), g);
+            }
+        }
         
         java.util.List<java.util.Map<String, Object>> leaderboard = new java.util.ArrayList<>();
         
         for (User u : users) {
-            Double totalEmissions = activityRepository.sumByUserAndDateRange(u, start, java.time.LocalDate.now());
-            if (totalEmissions == null) totalEmissions = 0.0;
+            Double totalEmissions = userEmissionsMap.getOrDefault(u.getId(), 0.0);
             
             java.util.Map<String, Object> map = new java.util.HashMap<>();
             map.put("name", u.getFullName() != null && !u.getFullName().isEmpty() ? u.getFullName() : u.getUsername());
             map.put("email", u.getEmail());
             map.put("total", Math.round(totalEmissions * 10) / 10.0);
             
-            java.util.List<com.carbontrack.entity.Goal> activeGoals = goalRepository.findByUserAndStatus(u, "active");
+            java.util.List<java.util.Map<String, Object>> userBadges = new java.util.ArrayList<>();
+            for (com.carbontrack.entity.Badge b : u.getBadges()) {
+                java.util.Map<String, Object> bm = new java.util.HashMap<>();
+                bm.put("id", b.getId());
+                bm.put("name", b.getName());
+                bm.put("description", b.getDescription());
+                bm.put("iconUrl", b.getIconUrl());
+                userBadges.add(bm);
+            }
+            map.put("badges", userBadges);
+            
+            com.carbontrack.entity.Goal activeGoal = userGoalsMap.get(u.getId());
             double reductionPercent = 0.0;
-            if (!activeGoals.isEmpty()) {
-                reductionPercent = activeGoals.get(0).getProgressPercentage();
+            if (activeGoal != null) {
+                reductionPercent = activeGoal.getProgressPercentage();
             } else {
                 reductionPercent = totalEmissions < 150.0 ? 30.0 : 10.0;
             }

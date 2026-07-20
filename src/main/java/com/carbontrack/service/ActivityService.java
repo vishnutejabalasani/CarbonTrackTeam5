@@ -18,10 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -55,7 +52,7 @@ public class ActivityService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    @CacheEvict(value = {"weeklySummary", "aggregationByCategory", "aggregationByDate", "peerBenchmarking", "organizationDashboard"}, allEntries = true)
+    @CacheEvict(value = {"weeklySummary", "aggregationByCategory", "aggregationByDate", "peerBenchmarking", "organizationDashboard", "emissionsAggregation"}, allEntries = true)
     public ActivityLog logActivity(LogActivityRequest request) {
         User user = getAuthenticatedUser();
 
@@ -401,5 +398,69 @@ public class ActivityService {
 
     private double round1(double value) {
         return Math.round(value * 10) / 10.0;
+    }
+
+    @Cacheable("emissionsAggregation")
+    public List<Map<String, Object>> getEmissionsAggregation(String interval, LocalDate startDate, LocalDate endDate) {
+        User user = getAuthenticatedUser();
+        List<Object[]> queryResults = activityRepository.aggregateEmissionsByCategoryAndDate(user, startDate, endDate);
+        
+        Map<String, Map<String, Double>> grouped = new LinkedHashMap<>();
+        
+        for (Object[] row : queryResults) {
+            String category = (String) row[0];
+            LocalDate date = (LocalDate) row[1];
+            Double value = (Double) row[2];
+            if (value == null) value = 0.0;
+            
+            String groupKey = getIntervalGroupKey(interval, date);
+            grouped.computeIfAbsent(groupKey, k -> new HashMap<>())
+                   .merge(category, value, Double::sum);
+        }
+        
+        List<Map<String, Object>> response = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Double>> entry : grouped.entrySet()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("period", entry.getKey());
+            
+            Map<String, Double> categorySums = entry.getValue();
+            double total = 0.0;
+            for (Map.Entry<String, Double> catEntry : categorySums.entrySet()) {
+                double roundedVal = round1(catEntry.getValue());
+                item.put(catEntry.getKey(), roundedVal);
+                total += roundedVal;
+            }
+            item.put("total", round1(total));
+            response.add(item);
+        }
+        return response;
+    }
+
+    private String getIntervalGroupKey(String interval, LocalDate date) {
+        if ("weekly".equalsIgnoreCase(interval)) {
+            java.time.temporal.TemporalField woy = java.time.temporal.WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear();
+            int week = date.get(woy);
+            int year = date.getYear();
+            return String.format("%d-W%02d", year, week);
+        } else if ("monthly".equalsIgnoreCase(interval)) {
+            return String.format("%d-%02d", date.getYear(), date.getMonthValue());
+        } else {
+            return date.toString();
+        }
+    }
+
+    @CacheEvict(value = {"weeklySummary", "aggregationByCategory", "aggregationByDate", "peerBenchmarking", "organizationDashboard", "emissionsAggregation"}, allEntries = true)
+    public void deleteActivity(Long id) {
+        User user = getAuthenticatedUser();
+        ActivityLog activity = activityRepository.findById(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Activity log not found"));
+
+        if (!activity.getUser().getId().equals(user.getId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "You are not authorized to delete this activity log");
+        }
+
+        activityRepository.delete(activity);
     }
 }

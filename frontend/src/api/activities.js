@@ -33,3 +33,39 @@ export const getAllActivities = async ({ category, startDate, endDate, sortBy, s
   });
   return response.data;
 };
+
+export const parseNaturalLanguageLog = async (text) => {
+  const response = await api.post("/ai/parse-log", { text });
+  return response.data;
+};
+
+export const analyzeImageLog = async (imageFile) => {
+  const formData = new FormData();
+  formData.append("image", imageFile);
+  const response = await api.post("/ai/analyze-image", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 60000,
+  });
+  return response.data;
+};
+
+
+export const getForecast = async () => {
+  const response = await api.get("/ai/forecast");
+  return response.data;
+};
+
+export const getForestGuardianMsg = async () => {
+  const response = await api.get("/ai/forest-guardian");
+  return response.data;
+};
+
+export const chatWithGreenCoach = async (message) => {
+  const response = await api.post("/ai/chat", { message });
+  return response.data;
+};
+
+export const deleteActivity = async (id) => {
+  const response = await api.delete(`/activities/${id}`);
+  return response.data;
+};

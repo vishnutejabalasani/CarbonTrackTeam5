@@ -45,6 +45,9 @@ class ActivityServiceTest {
     @Mock
     private SecurityContext securityContext;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     private ActivityService activityService;
 

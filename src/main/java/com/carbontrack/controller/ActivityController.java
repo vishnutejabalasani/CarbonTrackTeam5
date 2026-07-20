@@ -119,4 +119,10 @@ public class ActivityController {
                 activityService.getOrganizationDashboard()
         );
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteActivity(@PathVariable Long id) {
+        activityService.deleteActivity(id);
+        return ResponseEntity.ok(Map.of("message", "Activity log deleted successfully"));
+    }
 }

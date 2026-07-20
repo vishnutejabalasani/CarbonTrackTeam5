@@ -10,22 +10,26 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private final String SECRET_KEY = "CarbonTrackSecretKeyCarbonTrackSecretKey12345";
+    @org.springframework.beans.factory.annotation.Value("${app.jwt.secret}")
+    private String secretKey;
+
+    @org.springframework.beans.factory.annotation.Value("${app.jwt.expiration-ms}")
+    private long jwtExpirationMs;
 
     public String generateToken(String email) {
 
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
 
     public String extractEmail(String token) {
 
         Claims claims = Jwts.parser()
-                .setSigningKey(SECRET_KEY)
+                .setSigningKey(secretKey)
                 .parseClaimsJws(token)
                 .getBody();
 
@@ -43,7 +47,7 @@ public class JwtService {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
+                .setSigningKey(secretKey)
                 .parseClaimsJws(token)
                 .getBody();
     }

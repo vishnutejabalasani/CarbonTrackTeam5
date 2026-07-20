@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
   Settings,
@@ -19,36 +19,56 @@ import {
   Wind,
   Sun,
   XCircle,
-  CheckCircle2
+  CheckCircle2,
+  Trophy,
+  Sparkles
 } from "lucide-react";
-import { getWeeklySummary, getRecentActivities } from "../api/activities";
+import { getWeeklySummary, getRecentActivities, getForecast } from "../api/activities";
 import { getCurrentGoal } from "../api/goals";
+import { getEarnedBadges } from "../api/badges";
 import SetGoalModal from "../components/SetGoalModal";
 import { CategoryPieChart, DailyEmissionsChart } from "../components/Charts";
+import GrowingForest from "../components/GrowingForest";
+import OffsetSimulator from "../components/OffsetSimulator";
+import { getWeatherData } from "../api/weather";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [goal, setGoalState] = useState(null);
+  const [earnedBadges, setEarnedBadges] = useState([]);
+  const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showGoalModal, setShowGoalModal] = useState(false);
-
-  // Carbon Calculator States
-  const [calcCategory, setCalcCategory] = useState("transport");
-  const [calcInput, setCalcInput] = useState("");
-  const [calcPreview, setCalcPreview] = useState(0);
+  const [weather, setWeather] = useState({
+    temp: 22,
+    description: "Sunny",
+    aqiLabel: "Excellent",
+    aqiColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/50",
+    cityName: "Bangalore",
+    updatedAt: "Just now"
+  });
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [summaryData, logsData, goalData] = await Promise.allSettled([
+      const [summaryData, logsData, goalData, badgesData, forecastDataRes, weatherDataRes] = await Promise.allSettled([
         getWeeklySummary(),
         getRecentActivities(5),
         getCurrentGoal(),
+        getEarnedBadges(),
+        getForecast(),
+        getWeatherData(),
       ]);
       setSummary(summaryData.status === "fulfilled" ? summaryData.value : null);
       setRecentLogs(logsData.status === "fulfilled" ? logsData.value : []);
       setGoalState(goalData.status === "fulfilled" ? goalData.value : null);
+      setEarnedBadges(badgesData.status === "fulfilled" ? badgesData.value || [] : []);
+      setForecastData(forecastDataRes.status === "fulfilled" ? forecastDataRes.value || [] : []);
+      if (weatherDataRes.status === "fulfilled" && weatherDataRes.value) {
+        setWeather(weatherDataRes.value);
+      }
     } finally {
       setLoading(false);
     }
@@ -57,18 +77,6 @@ export default function Dashboard() {
   useEffect(() => {
     loadData();
   }, []);
-
-  // Update live preview in calculator
-  useEffect(() => {
-    const val = parseFloat(calcInput) || 0;
-    const rates = {
-      transport: 0.24, // kg per mile
-      electricity: 0.38, // kg per kWh
-      food: 1.2, // kg per meal
-      shopping: 2.5 // kg per item
-    };
-    setCalcPreview(val * (rates[calcCategory] || 0));
-  }, [calcInput, calcCategory]);
 
   const hasActivity = summary && summary.totalKgCo2e > 0;
 
@@ -90,66 +98,49 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 1. Main Hero Panel: Sustainability Impact & Rotating Earth */}
+      {/* 1. Main Hero Panel: Sustainability Impact */}
       <div className="bg-gradient-to-br from-brand-900 to-emerald-950 text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-xl border border-emerald-800/40">
         {/* Decorative background radial pattern */}
         <div className="absolute right-0 bottom-0 w-96 h-96 bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.15),transparent_60%)] pointer-events-none" />
         
-        <div className="grid lg:grid-cols-[1fr_auto] gap-8 items-center relative z-10">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-brand-100">
-              <Leaf size={11} className="text-brand-300 rotate-12" />
-              SaaS Operational Report
-            </div>
-            
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight max-w-xl">
-              Your Sustainability Impact
-            </h1>
-            
-            <p className="text-brand-100 text-sm max-w-md leading-relaxed">
-              Track operational footprint vectors in real-time, benchmark categories against climate targets, and implement reduction guidelines.
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-              <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
-                <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Carbon Score</p>
-                <p className="text-xl font-extrabold text-white mt-1">A+ Rating</p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
-                <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">CO₂ Saved</p>
-                <p className="text-xl font-extrabold text-brand-300 mt-1">
-                  {summary ? (35 - summary.totalKgCo2e > 0 ? (35 - summary.totalKgCo2e).toFixed(1) : "4.2") : "0"} kg
-                </p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
-                <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Trees Restored</p>
-                <p className="text-xl font-extrabold text-emerald-400 mt-1">
-                  {summary ? Math.max(1, Math.round(summary.totalKgCo2e / 12)) : 0} Trees
-                </p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 flex items-center gap-2">
-                <div>
-                  <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Active Streak</p>
-                  <p className="text-xl font-extrabold text-amber-400 mt-0.5">5 Days</p>
-                </div>
-                <Flame size={20} className="text-amber-500 fill-amber-500 animate-bounce" />
-              </div>
-            </div>
+        <div className="relative z-10 space-y-4">
+          <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-brand-100">
+            <Leaf size={11} className="text-brand-300 rotate-12" />
+            SaaS Operational Report
           </div>
+          
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight max-w-xl">
+            Your Sustainability Impact
+          </h1>
+          
+          <p className="text-brand-100 text-sm max-w-md leading-relaxed">
+            Track operational footprint vectors in real-time, benchmark categories against climate targets, and implement reduction guidelines.
+          </p>
 
-          {/* Animated 3D-like spinning Earth globe widget */}
-          <div className="flex flex-col items-center justify-center shrink-0 lg:pr-6">
-            <div className="relative w-36 h-36 rounded-full bg-gradient-to-tr from-brand-700 via-emerald-600 to-emerald-400 shadow-2xl flex items-center justify-center overflow-hidden border-2 border-white/20">
-              {/* Spinning continents overlay */}
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80')] bg-cover opacity-20 animate-[spin_30s_linear_infinite]" />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/20 to-emerald-950/70" />
-              
-              <div className="relative z-10 text-center">
-                <Leaf size={32} className="text-white mx-auto drop-shadow-md rotate-12" />
-                <p className="text-[10px] font-bold tracking-widest text-brand-100 uppercase mt-2">Verified</p>
-              </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
+              <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Carbon Score</p>
+              <p className="text-xl font-extrabold text-white mt-1">A+ Rating</p>
             </div>
-            <p className="text-[10px] text-brand-200 font-bold tracking-widest uppercase mt-3">Live footprint tracking</p>
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
+              <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">CO₂ Saved</p>
+              <p className="text-xl font-extrabold text-brand-300 mt-1">
+                {summary ? (35 - summary.totalKgCo2e > 0 ? (35 - summary.totalKgCo2e).toFixed(1) : "4.2") : "0"} kg
+              </p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
+              <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Trees Restored</p>
+              <p className="text-xl font-extrabold text-emerald-400 mt-1">
+                {summary ? Math.max(1, Math.round(summary.totalKgCo2e / 12)) : 0} Trees
+              </p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 flex items-center gap-2">
+              <div>
+                <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Active Streak</p>
+                <p className="text-xl font-extrabold text-amber-400 mt-0.5">5 Days</p>
+              </div>
+              <Flame size={20} className="text-amber-500 fill-amber-500 animate-bounce" />
+            </div>
           </div>
         </div>
       </div>
@@ -179,24 +170,24 @@ export default function Dashboard() {
         />
         
         {/* Live Weather & AQI card */}
-        <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-3 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 p-5 space-y-3 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Climate / Environment</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Climate / Environment</span>
             <Sun className="text-amber-500" size={16} />
           </div>
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">22°C</span>
-              <span className="text-xs font-semibold text-slate-400">Sunny</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">{weather.temp}°C</span>
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">{weather.description}</span>
             </div>
-            <p className="text-[10px] text-brand-800 font-bold mt-1.5 flex items-center gap-1">
-              <Wind size={12} />
-              AQI: 38 (Excellent Air Quality)
-            </p>
+            <div className={`text-[10px] font-bold mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border ${weather.aqiColor}`}>
+              <Wind size={11} />
+              <span>AQI: {weather.aqiLabel}</span>
+            </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-400 font-medium">
-            <span>Location: Bangalore</span>
-            <span>Updated: 5m ago</span>
+          <div className="pt-2 border-t border-slate-100 dark:border-brand-900/20 flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+            <span>Location: {weather.cityName}</span>
+            <span>Updated: {weather.updatedAt}</span>
           </div>
         </div>
       </div>
@@ -206,7 +197,9 @@ export default function Dashboard() {
         
         {/* Left pane: Charts & Analytics details */}
         <div className="space-y-8">
-          
+          {/* Animated Ecological Forest */}
+          <GrowingForest goal={goal} />
+
           {/* Charts Section */}
           <div className="grid sm:grid-cols-2 gap-6">
             <CategoryPieChart days={7} data={[
@@ -216,46 +209,46 @@ export default function Dashboard() {
               { name: "Shopping", value: 5 }
             ]} />
             
-            <DailyEmissionsChart days={7} target={summary?.weeklyTargetKg / 7 || 5} />
+            <DailyEmissionsChart days={7} target={summary?.weeklyTargetKg / 7 || 5} forecast={forecastData} />
           </div>
 
           {/* Activity Logs Timeline */}
-          <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-5">
+          <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 shadow-sm p-6 space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <Activity size={18} className="text-brand-850" />
+                <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                  <Activity size={18} className="text-brand-850 dark:text-brand-350" />
                   Live Footprint Stream
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Real-time breakdown of logged user activity vectors.</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Real-time breakdown of logged user activity vectors.</p>
               </div>
-              <Link to="/history" className="text-xs font-bold text-brand-800 hover:underline flex items-center gap-0.5">
+              <Link to="/history" className="text-xs font-bold text-brand-800 dark:text-brand-350 hover:underline flex items-center gap-0.5">
                 Full History
                 <ArrowUpRight size={13} />
               </Link>
             </div>
 
-            <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+            <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-brand-900/20">
               {recentLogs.length > 0 ? (
                 recentLogs.map((log) => (
                   <div key={log.id} className="flex gap-4 relative">
-                    <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-600 shrink-0 relative z-10 shadow-sm">
+                    <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-brand-900/20 border border-slate-200/50 dark:border-brand-900/40 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0 relative z-10 shadow-sm">
                       <CategoryIcon category={log.category} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-bold text-slate-800 truncate">{log.activityType}</p>
-                        <span className="text-[10px] font-bold text-slate-900 shrink-0 bg-slate-100 px-2 py-0.5 rounded-lg">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{log.activityType}</p>
+                        <span className="text-[10px] font-bold text-slate-900 dark:text-slate-100 shrink-0 bg-slate-100 dark:bg-brand-900/40 px-2 py-0.5 rounded-lg">
                           {log.calculatedEmissionsKgCO2e?.toFixed(1)} kg CO₂
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{log.logDate}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{log.logDate}</p>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-6">
-                  <p className="text-xs text-slate-400">No recent activity logs. Click Quick Log above to start tracking!</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">No recent activity logs. Click Quick Log above to start tracking!</p>
                 </div>
               )}
             </div>
@@ -265,58 +258,8 @@ export default function Dashboard() {
         {/* Right pane: Calculator & Recommendations */}
         <div className="space-y-8">
           
-          {/* Interactive Calculator widget */}
-          <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-4">
-            <div>
-              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <Calculator size={16} className="text-brand-850" />
-                Footprint Calculator
-              </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Preview carbon equivalents before logging.</p>
-            </div>
-
-            <div className="grid grid-cols-4 gap-1 bg-slate-50 p-1 rounded-xl">
-              {["transport", "electricity", "food", "shopping"].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCalcCategory(cat)}
-                  className={`py-1.5 rounded-lg text-[10px] font-bold capitalize transition focus:outline-none ${
-                    calcCategory === cat
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                  {calcCategory === "transport" && "Distance Traveled (Miles)"}
-                  {calcCategory === "electricity" && "Usage Amount (kWh)"}
-                  {calcCategory === "food" && "Quantity of Meals"}
-                  {calcCategory === "shopping" && "Number of Items"}
-                </label>
-                <input
-                  type="number"
-                  placeholder="Enter amount..."
-                  value={calcInput}
-                  onChange={(e) => setCalcInput(e.target.value)}
-                  className="w-full border border-slate-200 bg-slate-50/50 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/25"
-                />
-              </div>
-
-              <div className="p-3 bg-brand-50/60 border border-brand-100/50 rounded-xl flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-brand-700 font-bold uppercase tracking-wider">CO₂ Impact Preview</p>
-                  <p className="text-lg font-black text-brand-900 mt-0.5">{calcPreview.toFixed(1)} kg</p>
-                </div>
-                <Leaf className="text-brand-700 animate-pulse" size={20} />
-              </div>
-            </div>
-          </div>
+          {/* Interactive Carbon Offset Simulator */}
+          <OffsetSimulator />
 
           {/* Recommendations Card */}
           <div className="bg-brand-900 text-white rounded-2xl p-6 space-y-4 shadow-md border border-brand-800/40 relative overflow-hidden">
@@ -352,6 +295,51 @@ export default function Dashboard() {
               Analyze Strategic Details
             </button>
           </div>
+
+          {/* Earned Badges Card */}
+          <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-2">
+              <Award className="text-brand-850 dark:text-brand-350" size={16} />
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm">Your Achievement Badges</h3>
+            </div>
+            
+            {earnedBadges.length > 0 ? (
+              <div className="grid grid-cols-4 gap-3">
+                {earnedBadges.slice(0, 8).map((badge) => {
+                  const badgeIconMap = {
+                    "First Step": Leaf,
+                    "Weekly Warrior": Flame,
+                    "Carbon Conscious": Sparkles,
+                    "Goal Getter": Award,
+                    "Green Champion": Award,
+                    "Eco Warrior": Trophy,
+                    "Transport Hero": Car,
+                    "First Goal Achieved": Trophy,
+                    "Carbon Saver 10kg": Award,
+                    "Carbon Saver 25kg": Award,
+                    "Carbon Saver 50kg": Award,
+                  };
+                  const Icon = badgeIconMap[badge.name] || Leaf;
+                  return (
+                    <div
+                      key={badge.id}
+                      className="group relative flex flex-col items-center justify-center p-2 rounded-xl border border-slate-150 bg-slate-50/50 hover:bg-brand-50/30 hover:border-brand-100 transition duration-300 dark:border-brand-900/40 dark:bg-brand-900/10 dark:hover:bg-brand-900/20"
+                      title={`${badge.name}: ${badge.description}`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-800 group-hover:scale-110 transition duration-300 dark:bg-brand-900/30 dark:border-brand-900/50 dark:text-brand-300">
+                        <Icon size={18} className="text-brand-850 dark:text-brand-300" />
+                      </div>
+                      <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350 text-center truncate w-full mt-1.5">{badge.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-4 bg-slate-50/50 rounded-xl border border-slate-100 dark:bg-brand-900/10 dark:border-brand-900/40">
+                <p className="text-xs text-slate-400 dark:text-slate-500">No achievements yet. Log activities or complete goals to earn badges!</p>
+              </div>
+            )}
+          </div>
         </div>
 
       </div>
@@ -365,14 +353,16 @@ export default function Dashboard() {
 
 function KPICard({ title, value, subtext, trend, isPositive }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-3 shadow-sm hover:shadow-md transition duration-300">
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{title}</p>
+    <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 p-5 space-y-3 shadow-sm hover:shadow-md transition duration-300">
+      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</p>
       <div>
-        <p className="text-2xl font-black text-slate-900">{value}</p>
-        <p className="text-[10px] text-slate-400 mt-0.5">{subtext}</p>
+        <p className="text-2xl font-black text-slate-900 dark:text-white">{value}</p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{subtext}</p>
       </div>
       <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-        isPositive ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+        isPositive 
+          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100/30" 
+          : "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-100/30"
       }`}>
         <TrendingDown size={11} className={isPositive ? "" : "rotate-180"} />
         {trend}

@@ -1,10 +1,10 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from "recharts";
 
 const displayColorMap = {
-  Transport: "#6d5fd6",
-  Electricity: "#e8a23d",
-  Food: "#e05c5c",
-  Shopping: "#3d9be8"
+  Transport: "#818cf8",
+  Electricity: "#fbbf24",
+  Food: "#f87171",
+  Shopping: "#38bdf8"
 };
 
 const gradientMap = {
@@ -14,14 +14,19 @@ const gradientMap = {
   Shopping: ["#60a5fa", "#2563eb"]
 };
 
-// Premium Glassmorphic Tooltip
+// Premium Glassmorphic Tooltip supporting Dark Mode
 function CustomTooltip({ active, payload }) {
   if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const isForecast = data.forecast !== undefined && data.emissions === undefined;
+    const value = isForecast ? data.forecast : data.emissions;
+    const label = isForecast ? "AI Projected Emissions" : "Actual Emissions";
     return (
-      <div className="bg-white/90 backdrop-blur-md border border-slate-200/60 rounded-xl p-3 shadow-lg">
-        <p className="text-xs font-bold text-slate-800">{payload[0].name || payload[0].payload.date}</p>
-        <p className="text-sm font-extrabold text-brand-850 mt-0.5">
-          {payload[0].value.toFixed(1)} kg CO₂e
+      <div className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-200/60 dark:border-brand-900/50 rounded-xl p-3 shadow-lg">
+        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{data.date}</p>
+        <p className="text-[10px] font-semibold text-emerald-700 dark:text-brand-350 mt-1">{label}</p>
+        <p className="text-sm font-extrabold text-brand-850 dark:text-brand-300 mt-0.5">
+          {value !== undefined && value !== null ? `${value.toFixed(1)} kg CO₂e` : "0.0 kg"}
         </p>
       </div>
     );
@@ -38,18 +43,16 @@ export function CategoryPieChart({ days = 30, data }) {
   ];
 
   const chartData = data && data.length > 0 ? data : defaultData;
-  const total = chartData.reduce((sum, item) => sum + item.value, 0);
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 hover:shadow-md transition duration-300">
-      <div className="mb-4">
-        <h3 className="text-base font-bold text-slate-900">Emissions by Category</h3>
-        <p className="text-xs text-slate-400 mt-0.5">Distribution over last {days} days</p>
+  const total = chartData.reduce((sum, item) => sum + item.value, 0);  return (
+    <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 shadow-sm p-6 hover:shadow-md transition duration-300 flex flex-col justify-between">
+      <div className="mb-2">
+        <h3 className="text-base font-bold text-slate-900 dark:text-white">Emissions by Category</h3>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Distribution over last {days} days</p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-6 items-center">
+      <div className="flex-1 flex flex-col items-center justify-center py-2">
         {/* Pie Chart */}
-        <div className="h-48 relative flex items-center justify-center">
+        <div className="h-44 w-44 relative flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <defs>
@@ -64,8 +67,8 @@ export function CategoryPieChart({ days = 30, data }) {
                 data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={80}
+                innerRadius={55}
+                outerRadius={75}
                 paddingAngle={4}
                 dataKey="value"
               >
@@ -77,38 +80,38 @@ export function CategoryPieChart({ days = 30, data }) {
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <p className="text-2xl font-black text-slate-900">{total.toFixed(0)}</p>
-            <p className="text-[9px] uppercase font-bold text-slate-400">Total kg</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white">{total.toFixed(0)}</p>
+            <p className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500">Total kg</p>
           </div>
         </div>
+      </div>
 
-        {/* Legend */}
-        <div className="space-y-2">
-          {chartData.map((item) => {
-            const pct = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
-            return (
-              <div key={item.name} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: displayColorMap[item.name] || "#10b981" }}
-                  />
-                  <span className="text-xs font-semibold text-slate-700">{item.name}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-slate-900">{item.value.toFixed(1)} kg</span>
-                  <span className="text-[10px] text-slate-400 font-medium ml-1.5">({pct}%)</span>
-                </div>
+      {/* Legend below in 2-column grid */}
+      <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-brand-900/20">
+        {chartData.map((item) => {
+          const pct = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
+          return (
+            <div key={item.name} className="flex items-center justify-between p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-brand-900/20 transition">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: displayColorMap[item.name] || "#10b981" }}
+                />
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350 truncate">{item.name}</span>
               </div>
-            );
-          })}
-        </div>
+              <div className="text-right whitespace-nowrap ml-2 shrink-0">
+                <span className="text-[11px] font-black text-slate-900 dark:text-slate-100">{item.value.toFixed(1)} kg</span>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium ml-1">({pct}%)</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-export function DailyEmissionsChart({ days = 7, data, target = 35 }) {
+export function DailyEmissionsChart({ days = 7, data, target = 35, forecast }) {
   const defaultData = [
     { date: "Mon", emissions: 25 },
     { date: "Tue", emissions: 30 },
@@ -121,34 +124,54 @@ export function DailyEmissionsChart({ days = 7, data, target = 35 }) {
 
   const chartData = data && data.length > 0 ? data : defaultData;
 
+  // Merge historical and AI forecast data
+  let combinedData = [...chartData];
+  if (forecast && forecast.length > 0) {
+    const lastItem = combinedData[combinedData.length - 1];
+    if (lastItem) {
+      lastItem.forecast = lastItem.emissions;
+    }
+    forecast.forEach((f) => {
+      combinedData.push({
+        date: `${f.date} (AI)`,
+        forecast: f.emissions,
+      });
+    });
+  }
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 hover:shadow-md transition duration-300">
+    <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 shadow-sm p-6 hover:shadow-md transition duration-300">
       <div className="mb-4 flex justify-between items-start">
         <div>
-          <h3 className="text-base font-bold text-slate-900">Emission Trends</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Daily activity over last {days} days</p>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Emission Trends & AI Forecast</h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Daily activity benchmarked with future projections</p>
         </div>
-        <div className="flex items-center gap-1 bg-brand-50 border border-brand-100 rounded-full px-2.5 py-1 text-[10px] font-bold text-brand-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse" />
-          Live
+        <div className="flex items-center gap-1 bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-900/50 rounded-full px-2.5 py-1 text-[10px] font-bold text-brand-800 dark:text-brand-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-600 dark:bg-brand-400 animate-pulse" />
+          AI Forecast Active
         </div>
       </div>
 
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+          <AreaChart data={combinedData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
             <defs>
               <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2}/>
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0.0}/>
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+              </linearGradient>
+              <linearGradient id="forecastGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.15}/>
+                <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.08)" />
             <XAxis dataKey="date" tickLine={false} axisLine={false} style={{ fontSize: 10, fill: "#94a3b8", fontWeight: 600 }} />
             <YAxis tickLine={false} axisLine={false} style={{ fontSize: 10, fill: "#94a3b8", fontWeight: 600 }} />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={target} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: `Limit (${target}kg)`, fill: "#d97706", fontSize: 9, position: "top", fontWeight: 700 }} />
-            <Area type="monotone" dataKey="emissions" stroke="#22c55e" strokeWidth={2.5} fillOpacity={1} fill="url(#areaGrad)" />
+            <ReferenceLine y={target} stroke="#fbbf24" strokeDasharray="4 4" label={{ value: `Limit (${parseFloat(target).toFixed(1)} kg)`, fill: "#d97706", fontSize: 9, position: "top", fontWeight: 700 }} />
+            <Area type="monotone" dataKey="emissions" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#areaGrad)" />
+            <Area type="monotone" dataKey="forecast" stroke="#fbbf24" strokeWidth={2} strokeDasharray="4 4" fillOpacity={1} fill="url(#forecastGrad)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>

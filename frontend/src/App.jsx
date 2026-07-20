@@ -13,6 +13,7 @@ import ViewHistory from "./pages/ViewHistory";
 import OAuthSuccess from "./pages/OAuthSuccess";
 import Landing from "./pages/Landing";
 import Settings from "./pages/Settings";
+import VisionAnalyzer from "./pages/VisionAnalyzer";
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/community" element={<Community />} />
             <Route path="/history" element={<ViewHistory />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/vision" element={<VisionAnalyzer />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

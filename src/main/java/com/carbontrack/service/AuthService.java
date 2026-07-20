@@ -21,6 +21,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.auth.allow-dev-bypass:false}")
+    private boolean allowDevBypass;
+
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
@@ -73,6 +76,9 @@ public class AuthService {
 
         // Developer bypass for local testing without OAuth Client ID
         if (idToken != null && idToken.startsWith("dev-token-")) {
+            if (!allowDevBypass) {
+                return new AuthResponse(null, "Developer token bypass is disabled in this environment");
+            }
             String email = idToken.substring("dev-token-".length());
             String initialName = email.split("@")[0];
             if (initialName.length() > 0) {

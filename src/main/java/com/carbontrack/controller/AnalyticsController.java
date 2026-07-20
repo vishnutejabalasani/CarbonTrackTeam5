@@ -29,6 +29,14 @@ public class AnalyticsController {
         return ResponseEntity.ok(activityService.getEmissionsByCategory(startDate, endDate));
     }
 
+    @GetMapping("/aggregation")
+    public ResponseEntity<List<Map<String, Object>>> getEmissionsAggregation(
+            @RequestParam(defaultValue = "daily") String interval,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(activityService.getEmissionsAggregation(interval, startDate, endDate));
+    }
+
     @GetMapping("/trend")
     public ResponseEntity<List<Map<String, Object>>> getEmissionsByDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

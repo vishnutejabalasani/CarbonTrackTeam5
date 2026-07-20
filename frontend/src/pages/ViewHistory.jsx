@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Filter, Download, Car, Zap, Utensils, ShoppingBag, FileSpreadsheet, Eye, SlidersHorizontal } from "lucide-react";
-import { getAllActivities } from "../api/activities";
+import { ChevronLeft, ChevronRight, Filter, Download, Car, Zap, Utensils, ShoppingBag, FileSpreadsheet, Eye, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { getAllActivities, deleteActivity } from "../api/activities";
 
 const CATEGORIES = [
   { key: "transport", label: "Transport" },
@@ -13,6 +13,8 @@ export default function ViewHistory() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, pageSize: 20, total: 0 });
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -44,6 +46,25 @@ export default function ViewHistory() {
       setActivities([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (id) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    setDeleting(true);
+    try {
+      await deleteActivity(deleteConfirmId);
+      setDeleteConfirmId(null);
+      loadActivities();
+    } catch (err) {
+      console.error("Failed to delete activity:", err);
+      alert("Failed to delete activity log. Please try again.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -207,6 +228,7 @@ export default function ViewHistory() {
                     <th className="px-6 py-4">Logged Volume</th>
                     <th className="px-6 py-4">Date</th>
                     <th className="px-6 py-4 text-right">Calculated Footprint</th>
+                    <th className="px-6 py-4 text-center w-24">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs text-slate-650">
@@ -231,6 +253,15 @@ export default function ViewHistory() {
                         <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-brand-50 text-brand-850 font-bold border border-brand-100/50">
                           {activity.calculatedEmissionsKgCO2e?.toFixed(2)} kg
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleDeleteClick(activity.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition duration-150"
+                          title="Delete Activity"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -287,6 +318,48 @@ export default function ViewHistory() {
           </>
         )}
       </div>
+
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 px-4 backdrop-blur-[1px] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="font-semibold text-slate-900 text-sm">Delete Activity Log</h2>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">This action cannot be undone</p>
+              </div>
+              <button onClick={() => setDeleteConfirmId(null)} className="text-slate-400 hover:text-slate-650 transition">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="bg-rose-50/50 rounded-xl p-5 flex flex-col items-center mb-5 border border-rose-100/50 text-center">
+              <div className="w-11 h-11 rounded-full bg-rose-100 flex items-center justify-center mb-2.5 text-rose-600">
+                <Trash2 size={16} />
+              </div>
+              <p className="text-xs font-bold text-rose-900">Are you sure?</p>
+              <p className="text-[11px] text-rose-700/80 mt-1 max-w-[280px]">
+                Are you sure you want to permanently delete this logged footprint from your record?
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 border border-slate-200 text-slate-600 rounded-xl py-2.5 text-xs font-bold hover:bg-slate-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl py-2.5 text-xs font-bold transition disabled:opacity-60 shadow-sm"
+              >
+                {deleting ? "Deleting..." : "Delete Permanently"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
