@@ -29,9 +29,9 @@ export default function Register() {
     setLoading(true);
     try {
       await register(form);
-      navigate("/login");
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong. Please try again.");
+      setError(err.response?.data?.message || err.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
