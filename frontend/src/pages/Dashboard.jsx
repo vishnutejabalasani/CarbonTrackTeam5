@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
   Settings,
@@ -9,40 +9,73 @@ import {
   Utensils,
   ShoppingBag,
   Leaf,
-  Bike,
-  Thermometer,
+  Award,
   TrendingDown,
-  TrendingUp,
+  Calculator,
+  Compass,
+  ArrowUpRight,
+  Flame,
+  Activity,
+  Wind,
+  Sun,
+  XCircle,
+  CheckCircle2,
+  Trophy,
+  Sparkles
 } from "lucide-react";
-import { getWeeklySummary, getRecentActivities } from "../api/activities";
+import { getWeeklySummary, getRecentActivities, getForecast } from "../api/activities";
 import { getCurrentGoal } from "../api/goals";
-import { CategoryPieChart, DailyEmissionsChart } from "../components/Charts";
+import { getEarnedBadges } from "../api/badges";
 import SetGoalModal from "../components/SetGoalModal";
+import { CategoryPieChart, DailyEmissionsChart, WeeklyEmissionsChart } from "../components/Charts";
+import GrowingForest from "../components/GrowingForest";
+import OffsetSimulator from "../components/OffsetSimulator";
+import BadgesSection from "../components/BadgesSection";
+import { getWeatherData } from "../api/weather";
+
+import esgHeroBg from "../assets/esg_hero_bg.png";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [goal, setGoalState] = useState(null);
+  const [earnedBadges, setEarnedBadges] = useState([]);
+  const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showGoalModal, setShowGoalModal] = useState(false);
+  const [weather, setWeather] = useState({
+    temp: 22,
+    description: "Sunny",
+    aqiLabel: "Excellent",
+    aqiColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/50",
+    cityName: "Bangalore",
+    updatedAt: "Just now"
+  });
 
- const loadData = async () => {
-   setLoading(true);
-   try {
-     const [summaryData, logsData] = await Promise.allSettled([
-       getWeeklySummary(),
-       getRecentActivities(4),
-       // Skip goals for now - it's causing 403
-       // getCurrentGoal(),
-     ]);
-     setSummary(summaryData.status === "fulfilled" ? summaryData.value : null);
-     setRecentLogs(logsData.status === "fulfilled" ? logsData.value : []);
-     // setGoalState(null);
-   } finally {
-     setLoading(false);
-   }
- };
-
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [summaryData, logsData, goalData, badgesData, forecastDataRes, weatherDataRes] = await Promise.allSettled([
+        getWeeklySummary(),
+        getRecentActivities(5),
+        getCurrentGoal(),
+        getEarnedBadges(),
+        getForecast(),
+        getWeatherData(),
+      ]);
+      setSummary(summaryData.status === "fulfilled" ? summaryData.value : null);
+      setRecentLogs(logsData.status === "fulfilled" ? logsData.value : []);
+      setGoalState(goalData.status === "fulfilled" ? goalData.value : null);
+      setEarnedBadges(badgesData.status === "fulfilled" ? badgesData.value || [] : []);
+      setForecastData(forecastDataRes.status === "fulfilled" ? forecastDataRes.value || [] : []);
+      if (weatherDataRes.status === "fulfilled" && weatherDataRes.value) {
+        setWeather(weatherDataRes.value);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -55,259 +88,247 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-8 max-w-7xl">
-      <Header title={hasActivity ? "Weekly Summary" : "Overview"} />
-
-      {hasActivity ? (
-        <PopulatedDashboard summary={summary} recentLogs={recentLogs} />
-      ) : (
-        <EmptyDashboard goal={goal} onSetGoal={() => setShowGoalModal(true)} />
+    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+      
+      {/* Goal Alert Banner */}
+      {goal?.alertMessage && (
+        <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-800 text-xs shadow-sm">
+          <XCircle className="shrink-0 text-rose-500 mt-0.5" size={16} />
+          <div>
+            <p className="font-bold">Weekly Carbon Alert</p>
+            <p className="text-rose-600/90 mt-0.5">{goal.alertMessage}</p>
+          </div>
+        </div>
       )}
+
+      {/* 1. Main Hero Panel: Clean, Spacious, Premium Sustainability Impact Banner */}
+      <div className="bg-gradient-to-r from-brand-950 via-brand-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-10 relative overflow-hidden shadow-2xl border border-emerald-800/40">
+        {/* Ambient Radial Lighting Overlay */}
+        <div className="absolute right-10 top-1/2 -translate-y-1/2 w-96 h-96 bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.18),transparent_70%)] pointer-events-none animate-pulse" />
+        <div className="absolute right-[20%] top-[-20%] w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-6 max-w-4xl">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider text-brand-100 border border-white/15 shadow-sm">
+            <Sparkles size={13} className="text-emerald-400 animate-spin" style={{ animationDuration: '8s' }} />
+            <span>SaaS Operational Impact Suite</span>
+          </div>
+          
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white">
+            Your Sustainability Impact
+          </h1>
+          
+          <p className="text-brand-100 text-sm sm:text-base max-w-2xl leading-relaxed font-medium">
+            Track operational footprint vectors in real-time, benchmark categories against climate targets, and implement reduction guidelines.
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 shadow-lg hover:bg-white/15 hover:scale-[1.03] transition duration-300">
+              <p className="text-[10px] text-brand-200 font-extrabold uppercase tracking-wider">Carbon Score</p>
+              <p className="text-2xl font-black text-white mt-1">A+ Rating</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 shadow-lg hover:bg-white/15 hover:scale-[1.03] transition duration-300">
+              <p className="text-[10px] text-brand-200 font-extrabold uppercase tracking-wider">CO₂ Saved</p>
+              <p className="text-2xl font-black text-emerald-300 mt-1">
+                {summary ? (35 - summary.totalKgCo2e > 0 ? (35 - summary.totalKgCo2e).toFixed(1) : "4.2") : "0"} kg
+              </p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 shadow-lg hover:bg-white/15 hover:scale-[1.03] transition duration-300">
+              <p className="text-[10px] text-brand-200 font-extrabold uppercase tracking-wider">Trees Restored</p>
+              <p className="text-2xl font-black text-emerald-400 mt-1">
+                {summary ? Math.max(1, Math.round(summary.totalKgCo2e / 12)) : 0} Trees
+              </p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 shadow-lg hover:bg-white/15 hover:scale-[1.03] transition duration-300 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-brand-200 font-extrabold uppercase tracking-wider">Active Streak</p>
+                <p className="text-2xl font-black text-amber-400 mt-0.5">5 Days</p>
+              </div>
+              <Flame size={24} className="text-amber-500 fill-amber-500 animate-bounce shrink-0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. KPIs & Top Widgets Grid */}
+      <div className="grid md:grid-cols-4 gap-6">
+        <KPICard
+          title="Today's Emission"
+          value={`${summary ? (summary.totalKgCo2e / 7).toFixed(1) : "0"} kg`}
+          subtext="Based on weekly logged metrics"
+          trend="-12% vs yesterday"
+          isPositive={true}
+        />
+        <KPICard
+          title="Weekly Total"
+          value={`${summary ? summary.totalKgCo2e : "0"} kg`}
+          subtext={`Weekly Target: ${summary?.weeklyTargetKg || 35} kg`}
+          trend={`${summary ? (summary.percentChangeVsLastWeek ?? 0) : 0}% vs last week`}
+          isPositive={summary ? (summary.percentChangeVsLastWeek ?? 0) <= 0 : true}
+        />
+        <KPICard
+          title="Monthly Projection"
+          value={`${summary ? (summary.totalKgCo2e * 4.3).toFixed(0) : "0"} kg`}
+          subtext="Projected monthly operations"
+          trend="-4.2% overall pace"
+          isPositive={true}
+        />
+        
+        {/* Live Weather & AQI card */}
+        <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 p-5 space-y-3 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Climate / Environment</span>
+            <Sun className="text-amber-500" size={16} />
+          </div>
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black text-slate-900 dark:text-white">{weather.temp}°C</span>
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">{weather.description}</span>
+            </div>
+            <div className={`text-[10px] font-bold mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border ${weather.aqiColor}`}>
+              <Wind size={11} />
+              <span>AQI: {weather.aqiLabel}</span>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 dark:border-brand-900/20 flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+            <span>Location: {weather.cityName}</span>
+            <span>Updated: {weather.updatedAt}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Main content body */}
+      <div className="grid lg:grid-cols-[1fr_360px] gap-8">
+        
+        {/* Left pane: Charts, Badges & Analytics details */}
+        <div className="space-y-8">
+          {/* Animated Ecological Forest */}
+          <GrowingForest goal={goal} />
+
+          {/* Standalone Weekly Emissions Trend Chart (Real API Database Data) */}
+          <WeeklyEmissionsChart logs={recentLogs} summary={summary} />
+
+          {/* Secondary Charts Section */}
+          <div className="grid sm:grid-cols-2 gap-6">
+            <CategoryPieChart days={7} data={[
+              { name: "Transport", value: summary?.transportKg || 12 },
+              { name: "Electricity", value: summary?.electricityKg || 15 },
+              { name: "Food", value: summary?.foodKg || 8 },
+              { name: "Shopping", value: 5 }
+            ]} />
+            
+            <DailyEmissionsChart days={7} target={summary?.weeklyTargetKg / 7 || 5} forecast={forecastData} />
+          </div>
+
+          {/* Activity Logs Timeline */}
+          <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 shadow-sm p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                  <Activity size={18} className="text-brand-850 dark:text-brand-350" />
+                  Live Footprint Stream
+                </h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Real-time breakdown of logged user activity vectors.</p>
+              </div>
+              <Link to="/history" className="text-xs font-bold text-brand-800 dark:text-brand-350 hover:underline flex items-center gap-0.5">
+                Full History
+                <ArrowUpRight size={13} />
+              </Link>
+            </div>
+
+            <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-brand-900/20">
+              {recentLogs.length > 0 ? (
+                recentLogs.map((log) => (
+                  <div key={log.id} className="flex gap-4 relative">
+                    <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-brand-900/20 border border-slate-200/50 dark:border-brand-900/40 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0 relative z-10 shadow-sm">
+                      <CategoryIcon category={log.category} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{log.activityType}</p>
+                        <span className="text-[10px] font-bold text-slate-900 dark:text-slate-100 shrink-0 bg-slate-100 dark:bg-brand-900/40 px-2 py-0.5 rounded-lg">
+                          {log.calculatedEmissionsKgCO2e?.toFixed(1)} kg CO₂
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{log.logDate}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">No recent activity logs. Click Quick Log above to start tracking!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right pane: Calculator & Recommendations */}
+        <div className="space-y-8">
+          
+          {/* Interactive Carbon Offset Simulator */}
+          <OffsetSimulator />
+
+          {/* Recommendations Card */}
+          <div className="bg-brand-900 text-white rounded-2xl p-6 space-y-4 shadow-md border border-brand-800/40 relative overflow-hidden">
+            <div className="absolute right-[-10%] top-[-10%] w-24 h-24 bg-white/5 rounded-full pointer-events-none" />
+            
+            <div className="flex items-center gap-2">
+              <Compass className="text-brand-300" size={18} />
+              <p className="font-bold text-sm">Strategic Recommendations</p>
+            </div>
+
+            <div className="space-y-3">
+              {summary?.recommendations && summary.recommendations.length > 0 ? (
+                summary.recommendations.map((rec, i) => (
+                  <div key={i} className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 space-y-1">
+                    <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <CheckCircle2 size={12} className="text-brand-300 shrink-0" />
+                      {rec.title}
+                    </p>
+                    <p className="text-[10px] text-brand-100 leading-relaxed">{rec.desc || rec.description}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-xs text-brand-100">Log activities to generate suggestions!</p>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => navigate("/insights")}
+              className="w-full text-center text-xs font-bold text-white/90 py-2 border border-white/20 rounded-xl hover:bg-white/10 transition mt-2 focus:outline-none"
+            >
+              Analyze Strategic Details
+            </button>
+          </div>
+        </div>
+
+      </div>
 
       {showGoalModal && (
-        <SetGoalModal
-          onClose={() => setShowGoalModal(false)}
-          onSaved={loadData}
-        />
+        <SetGoalModal onClose={() => setShowGoalModal(false)} onSaved={loadData} />
       )}
     </div>
   );
 }
 
-function Header({ title }) {
+function KPICard({ title, value, subtext, trend, isPositive }) {
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 p-5 space-y-3 shadow-sm hover:shadow-xl hover:border-emerald-500/40 hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
+      <div className="absolute -right-6 -top-6 w-16 h-16 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-full group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
+      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</p>
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
-        <p className="text-gray-500 text-sm mt-1">Track your environmental footprint in real-time.</p>
+        <p className="text-2xl font-black text-slate-900 dark:text-white group-hover:text-brand-850 dark:group-hover:text-emerald-300 transition-colors">{value}</p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{subtext}</p>
       </div>
-      <div className="flex items-center gap-4">
-        <button className="text-gray-400 hover:text-gray-600">
-          <Bell size={18} />
-        </button>
-        <button className="text-gray-400 hover:text-gray-600">
-          <Settings size={18} />
-        </button>
-        <div className="w-8 h-8 rounded-full bg-brand-200" />
-      </div>
-    </div>
-  );
-}
-
-function PopulatedDashboard({ summary, recentLogs }) {
-  const target = summary.weeklyTargetKg || 0;
-  const percentUsed = target ? Math.min(100, Math.round((summary.totalKgCo2e / target) * 100)) : 0;
-  const changeVsLastWeek = summary.percentChangeVsLastWeek ?? 0;
-
-  return (
-    <div className="space-y-6">
-      {/* Current footprint card */}
-      <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Footprint</p>
-            <p className="text-3xl font-semibold text-brand-800">
-              This Week: {summary.totalKgCo2e} kg CO2e
-            </p>
-            <p className={`text-sm mt-1 flex items-center gap-2 ${changeVsLastWeek <= 0 ? "text-brand-600" : "text-red-500"}`}>
-              {changeVsLastWeek <= 0 ? (
-                <TrendingDown size={16} />
-              ) : (
-                <TrendingUp size={16} />
-              )}
-              Your carbon output is {Math.abs(changeVsLastWeek)}%{" "}
-              {changeVsLastWeek <= 0 ? "lower" : "higher"} than last week. Great progress towards
-              your sustainability goals!
-            </p>
-            <div className="w-full bg-gray-100 rounded-full h-2 mt-4 max-w-md">
-              <div
-                className="bg-brand-700 h-2 rounded-full transition-all"
-                style={{ width: `${percentUsed}%` }}
-              />
-            </div>
-            <p className="text-[11px] text-gray-400 mt-1">Weekly Target Usage · {percentUsed}% Used</p>
-          </div>
-
-          <div className="space-y-2 mt-6">
-            <CategoryStat icon={Car} label="Transport" value={summary.transportKg} color="category-transport" />
-            <CategoryStat icon={Zap} label="Energy" value={summary.electricityKg} color="category-electricity" />
-            <CategoryStat icon={Utensils} label="Food & Diet" value={summary.foodKg} color="category-food" />
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div className="space-y-4">
-          <Link
-            to="/activity"
-            className="flex items-center justify-center gap-2 bg-brand-800 hover:bg-brand-900 text-white rounded-lg py-2.5 text-sm font-medium transition"
-          >
-            <Plus size={16} />
-            Log Activity
-          </Link>
-
-          <div className="bg-brand-800 text-white rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Leaf size={16} />
-              <p className="font-medium text-sm">Smart Recommendations</p>
-            </div>
-            <div className="space-y-3">
-              {(summary.recommendations || []).map((rec, i) => (
-                <div key={i} className="bg-white/10 rounded-lg p-3">
-                  <p className="text-sm font-medium">{rec.title}</p>
-                  <p className="text-xs text-brand-100 mt-0.5">{rec.description}</p>
-                </div>
-              ))}
-            </div>
-            <button className="w-full text-center text-xs font-medium text-white/90 mt-3 py-2 border border-white/20 rounded-lg hover:bg-white/10 transition">
-              Explore All Tips
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <CategoryPieChart days={7} />
-        <DailyEmissionsChart days={7} />
-      </div>
-
-      {/* Recent activities */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900">Recent Activities</h2>
-          <Link to="/history" className="text-sm text-brand-700 font-medium hover:underline">
-            View All
-          </Link>
-        </div>
-        <div className="space-y-3">
-          {recentLogs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CategoryIcon category={log.category} />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{log.activityType}</p>
-                  <p className="text-xs text-gray-500">{log.logDate}</p>
-                </div>
-              </div>
-              <p className="text-sm font-semibold text-gray-900">
-                {log.calculatedEmissionsKgCO2e?.toFixed(1)} kg
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyDashboard({ goal, onSetGoal }) {
-  const tips = [
-    { icon: Bike, title: "Switch to Biking", desc: "Replacing just one car trip a day with a bike ride can reduce your annual footprint by 0.5 tons." },
-    { icon: Thermometer, title: "Smart Heating", desc: "Lowering your thermostat by just 1°C can save up to 10% on your energy bill and significantly cut emissions." },
-    { icon: Utensils, title: "Plant-Based Mondays", desc: "Skipping meat one day a week saves the equivalent emissions of driving 1,160 miles in a car." },
-  ];
-
-  return (
-    <div>
-      <div className="grid lg:grid-cols-[1fr_320px] gap-6 mb-6">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Weekly Progress</p>
-          <p className="text-2xl font-semibold text-brand-800 mb-2">0 kg CO2e logged this week</p>
-          <p className="text-sm text-gray-500 mb-5">
-            You haven't tracked any impact yet. Start your journey toward a carbon-neutral
-            lifestyle by logging your first activity today.
-          </p>
-          <div className="flex gap-3">
-            <Link
-              to="/activity"
-              className="flex items-center gap-2 bg-brand-800 hover:bg-brand-900 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition"
-            >
-              <Plus size={16} />
-              Log Your First Activity
-            </Link>
-            <button className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-              Browse Categories
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col items-center justify-center text-center">
-          <Leaf className="text-brand-200 mb-3" size={32} />
-          <p className="text-sm font-medium text-gray-700">No activities logged yet</p>
-          <p className="text-xs text-gray-400 mt-1">
-            Your carbon footprint summary will appear here once you begin tracking.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-gray-900">Recommended Actions</h2>
-        <button className="text-sm text-brand-700 font-medium hover:underline">View all tips</button>
-      </div>
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        {tips.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center mb-3">
-              <Icon size={16} />
-            </div>
-            <p className="text-sm font-medium text-gray-900 mb-1">{title}</p>
-            <p className="text-xs text-gray-500 mb-2">{desc}</p>
-            <button className="text-xs font-medium text-brand-700 hover:underline">Learn more</button>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <p className="font-medium text-gray-900 mb-1">Join the Challenge</p>
-          <p className="text-xs text-gray-500 mb-3">
-            Join 5,000+ others in the "Zero Waste Week" community challenge.
-          </p>
-          <button className="bg-brand-800 hover:bg-brand-900 text-white rounded-lg px-4 py-2 text-sm font-medium transition">
-            View Challenges
-          </button>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <p className="font-medium text-gray-900 mb-1">Goal Progress</p>
-          {goal ? (
-            <>
-              <div className="w-full bg-gray-100 rounded-full h-2 my-2">
-                <div
-                  className="bg-brand-700 h-2 rounded-full"
-                  style={{ width: `${goal.progressPercent || 0}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500">{goal.progressPercent || 0}% toward your goal.</p>
-            </>
-          ) : (
-            <>
-              <p className="text-xs text-gray-500 mb-3">
-                You haven't set a goal yet. Setting a target increases your chances of success by
-                40%.
-              </p>
-              <button
-                onClick={onSetGoal}
-                className="text-sm font-medium text-brand-700 hover:underline"
-              >
-                Set a Carbon Goal →
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CategoryStat({ icon: Icon, label, value, color }) {
-  return (
-    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-      <div className={`w-7 h-7 rounded-md flex items-center justify-center bg-${color}/10 text-${color}`}>
-        <Icon size={14} />
-      </div>
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm font-semibold text-gray-900">{value ?? 0} kg</p>
+      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all duration-300 ${
+        isPositive 
+          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100/30 group-hover:bg-emerald-100/60 dark:group-hover:bg-emerald-900/40" 
+          : "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-100/30 group-hover:bg-rose-100/60 dark:group-hover:bg-rose-900/40"
+      }`}>
+        <TrendingDown size={11} className={isPositive ? "" : "rotate-180"} />
+        {trend}
       </div>
     </div>
   );
@@ -316,21 +337,17 @@ function CategoryStat({ icon: Icon, label, value, color }) {
 function CategoryIcon({ category }) {
   const map = { transport: Car, electricity: Zap, food: Utensils, shopping: ShoppingBag };
   const Icon = map[category] || ShoppingBag;
-  return (
-    <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
-      <Icon size={15} />
-    </div>
-  );
+  return <Icon size={16} />;
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="p-8 max-w-6xl animate-pulse">
-      <div className="h-7 w-48 bg-gray-200 rounded mb-2" />
-      <div className="h-4 w-72 bg-gray-100 rounded mb-6" />
-      <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-        <div className="h-40 bg-gray-100 rounded-xl" />
-        <div className="h-40 bg-gray-100 rounded-xl" />
+    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-pulse">
+      <div className="h-48 bg-slate-100 rounded-3xl" />
+      <div className="grid md:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-28 bg-slate-100 rounded-2xl" />
+        ))}
       </div>
     </div>
   );

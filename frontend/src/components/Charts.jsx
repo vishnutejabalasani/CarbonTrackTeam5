@@ -239,3 +239,100 @@ export function DailyEmissionsChart({ days = 7 }) {
     </div>
   );
 }
+
+// Tooltip for Weekly Emissions chart
+function WeeklyTooltip({ active, payload }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-200/60 dark:border-brand-900/50 rounded-xl p-3 shadow-lg">
+        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{data.day} Footprint</p>
+        <p className="text-sm font-extrabold text-brand-850 dark:text-brand-300 mt-1">
+          {data.emissions !== undefined ? `${data.emissions.toFixed(1)} kg CO₂e` : "0.0 kg CO₂e"}
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
+export function WeeklyEmissionsChart({ logs = [], summary }) {
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const daysMap = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+  
+  if (logs && logs.length > 0) {
+    logs.forEach((log) => {
+      if (log.logDate && log.calculatedEmissionsKgCO2e !== undefined) {
+        const dateObj = new Date(log.logDate);
+        const dayName = dayNames[dateObj.getDay()];
+        if (daysMap[dayName] !== undefined) {
+          daysMap[dayName] += log.calculatedEmissionsKgCO2e;
+        }
+      }
+    });
+  }
+
+  const chartData = [
+    { day: "Mon", emissions: Math.round(daysMap.Mon * 10) / 10 },
+    { day: "Tue", emissions: Math.round(daysMap.Tue * 10) / 10 },
+    { day: "Wed", emissions: Math.round(daysMap.Wed * 10) / 10 },
+    { day: "Thu", emissions: Math.round(daysMap.Thu * 10) / 10 },
+    { day: "Fri", emissions: Math.round(daysMap.Fri * 10) / 10 },
+    { day: "Sat", emissions: Math.round(daysMap.Sat * 10) / 10 },
+    { day: "Sun", emissions: Math.round(daysMap.Sun * 10) / 10 },
+  ];
+
+  const totalEmissions = summary?.totalKgCo2e !== undefined ? summary.totalKgCo2e : chartData.reduce((acc, curr) => acc + curr.emissions, 0);
+  const percentChange = summary?.percentChangeVsLastWeek !== undefined ? summary.percentChangeVsLastWeek : 0;
+
+  return (
+    <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 shadow-sm p-6 hover:shadow-md transition duration-300 relative group overflow-hidden">
+      {/* Header section with summary */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">Weekly Emissions</h3>
+          </div>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-medium">Daily footprint distribution across Mon–Sun</p>
+        </div>
+
+        {/* Summary Pill Badge */}
+        <div className="flex items-center gap-3 bg-slate-50 dark:bg-brand-900/20 border border-slate-200/60 dark:border-brand-900/40 rounded-xl px-3.5 py-2 shrink-0">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block leading-none font-medium">This Week</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white">{totalEmissions.toFixed(1)} <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">kg CO₂e</span></span>
+          </div>
+          <div className="w-px h-6 bg-slate-200 dark:bg-brand-900/40" />
+          <div className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg ${
+            percentChange <= 0
+              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+              : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"
+          }`}>
+            <span>{percentChange <= 0 ? "↓" : "↑"} {Math.abs(percentChange).toFixed(1)}%</span>
+            <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500">vs last week</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Minimal responsive Area Chart */}
+      <div className="h-52 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+            <defs>
+              <linearGradient id="weeklyAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#2c6835" stopOpacity={0.35}/>
+                <stop offset="95%" stopColor="#5fa268" stopOpacity={0.0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.1)" />
+            <XAxis dataKey="day" tickLine={false} axisLine={false} style={{ fontSize: 11, fill: "#64748b", fontWeight: 700 }} />
+            <YAxis tickLine={false} axisLine={false} style={{ fontSize: 10, fill: "#94a3b8", fontWeight: 600 }} unit="kg" />
+            <Tooltip content={<WeeklyTooltip />} />
+            <Area type="monotone" dataKey="emissions" stroke="#2c6835" strokeWidth={3} fillOpacity={1} fill="url(#weeklyAreaGrad)" activeDot={{ r: 6, fill: "#34d399", stroke: "#1e4322", strokeWidth: 2 }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}

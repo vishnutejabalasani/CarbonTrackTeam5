@@ -18,19 +18,57 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const data = await authApi.login(email, password);
-    // Adjust these keys if your AuthResponse DTO uses different field names.
+    if (!data || !data.token) {
+      throw new Error(data?.message || "Login failed. Invalid credentials.");
+    }
     localStorage.setItem("carbontrack_token", data.token);
-    localStorage.setItem("carbontrack_user", JSON.stringify(data.user ?? { email }));
-    setUser(data.user ?? { email });
+
+    try {
+      const profile = await authApi.getProfile();
+      localStorage.setItem("carbontrack_user", JSON.stringify(profile));
+      setUser(profile);
+    } catch (err) {
+      const fallbackUser = { email };
+      localStorage.setItem("carbontrack_user", JSON.stringify(fallbackUser));
+      setUser(fallbackUser);
+    }
+    return data;
+  };
+
+  const googleLogin = async (idToken) => {
+    const data = await authApi.googleLogin(idToken);
+    if (!data || !data.token) {
+      throw new Error(data?.message || "Google login failed.");
+    }
+    localStorage.setItem("carbontrack_token", data.token);
+
+    try {
+      const profile = await authApi.getProfile();
+      localStorage.setItem("carbontrack_user", JSON.stringify(profile));
+      setUser(profile);
+    } catch (err) {
+      const fallbackUser = { email: "google-user" };
+      localStorage.setItem("carbontrack_user", JSON.stringify(fallbackUser));
+      setUser(fallbackUser);
+    }
     return data;
   };
 
   const register = async (formData) => {
     const data = await authApi.register(formData);
-    if (data.token) {
-      localStorage.setItem("carbontrack_token", data.token);
-      localStorage.setItem("carbontrack_user", JSON.stringify(data.user ?? { email: formData.email }));
-      setUser(data.user ?? { email: formData.email });
+    if (!data || !data.token) {
+      throw new Error(data?.message || "Registration failed.");
+    }
+    localStorage.setItem("carbontrack_token", data.token);
+
+    try {
+      const profile = await authApi.getProfile();
+      localStorage.setItem("carbontrack_user", JSON.stringify(profile));
+      setUser(profile);
+    } catch (err) {
+      const fallbackUser = { email: formData.email, fullName: formData.fullName };
+      localStorage.setItem("carbontrack_user", JSON.stringify(fallbackUser));
+      setUser(fallbackUser);
     }
     return data;
   };
@@ -41,7 +79,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
