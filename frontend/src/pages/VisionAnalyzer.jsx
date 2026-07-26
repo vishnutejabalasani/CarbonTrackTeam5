@@ -288,15 +288,31 @@ export default function VisionAnalyzer() {
                 <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
                 {imagePreview ? (
                   <div className="space-y-4">
-                    <img src={imagePreview} alt="Preview" className="max-h-72 mx-auto rounded-xl shadow-lg object-contain" />
+                    {/* Futuristic Laser Scanner Container */}
+                    <div className="relative inline-block overflow-hidden rounded-2xl shadow-xl max-h-80 mx-auto group">
+                      <img src={imagePreview} alt="Preview" className="max-h-80 mx-auto rounded-2xl object-contain bg-slate-950" />
+                      
+                      {/* Laser Beam & Target Reticles Overlay */}
+                      {analyzing && (
+                        <>
+                          <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-laser-scan z-20" />
+                          <div className="absolute inset-0 bg-emerald-950/20 border-2 border-emerald-400/40 pointer-events-none rounded-2xl animate-pulse" />
+                          <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-emerald-400 z-30" />
+                          <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-emerald-400 z-30" />
+                          <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-emerald-400 z-30" />
+                          <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-emerald-400 z-30" />
+                        </>
+                      )}
+                    </div>
+
                     <p className="text-xs text-slate-500 font-medium">{imageFile?.name} · {(imageFile?.size / 1024).toFixed(0)} KB</p>
                     <div className="flex justify-center gap-3">
                       <button onClick={(e) => { e.stopPropagation(); reset(); }} className="px-4 py-2 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-1.5">
                         <RotateCcw size={12} /> Change Image
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); analyzeImage(); }} disabled={analyzing} className="px-6 py-2 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 flex items-center gap-1.5 shadow-sm">
+                      <button onClick={(e) => { e.stopPropagation(); analyzeImage(); }} disabled={analyzing} className="px-6 py-2 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 flex items-center gap-1.5 shadow-sm active:scale-95">
                         {analyzing ? (
-                          <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analyzing...</>
+                          <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Scanning with AI...</>
                         ) : (
                           <><Sparkles size={12} /> Analyze with AI</>
                         )}

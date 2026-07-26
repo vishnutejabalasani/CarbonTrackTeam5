@@ -121,7 +121,8 @@ export default function GrowingForest({ goal }) {
               {/* Tree 1 (Left) */}
               <g 
                 transform="translate(80, 110)" 
-                className="cursor-help"
+                className="cursor-help animate-tree-sway"
+                style={{ animationDelay: "0s" }}
                 onMouseEnter={() => setHoveredTree(1)}
                 onMouseLeave={() => setHoveredTree(null)}
               >
@@ -133,7 +134,8 @@ export default function GrowingForest({ goal }) {
               {/* Tree 2 (Mid Left) */}
               <g 
                 transform="translate(140, 112)" 
-                className="cursor-help"
+                className="cursor-help animate-tree-sway"
+                style={{ animationDelay: "1.2s" }}
                 onMouseEnter={() => setHoveredTree(2)}
                 onMouseLeave={() => setHoveredTree(null)}
               >
@@ -145,7 +147,8 @@ export default function GrowingForest({ goal }) {
               {/* Tree 3 (Center - Focus Tree) */}
               <g 
                 transform="translate(200, 114)" 
-                className="cursor-help"
+                className="cursor-help animate-tree-sway"
+                style={{ animationDelay: "0.6s" }}
                 onMouseEnter={() => setHoveredTree(3)}
                 onMouseLeave={() => setHoveredTree(null)}
               >
@@ -163,7 +166,8 @@ export default function GrowingForest({ goal }) {
               {/* Tree 4 (Mid Right) */}
               <g 
                 transform="translate(260, 111)" 
-                className="cursor-help"
+                className="cursor-help animate-tree-sway"
+                style={{ animationDelay: "1.8s" }}
                 onMouseEnter={() => setHoveredTree(4)}
                 onMouseLeave={() => setHoveredTree(null)}
               >
@@ -175,7 +179,8 @@ export default function GrowingForest({ goal }) {
               {/* Tree 5 (Right) */}
               <g 
                 transform="translate(320, 113)" 
-                className="cursor-help"
+                className="cursor-help animate-tree-sway"
+                style={{ animationDelay: "2.4s" }}
                 onMouseEnter={() => setHoveredTree(5)}
                 onMouseLeave={() => setHoveredTree(null)}
               >

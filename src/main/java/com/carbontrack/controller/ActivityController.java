@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/activities")
+@RequestMapping({"/api/activities", "/api/activity-history", "/activity-history"})
 public class ActivityController {
 
     private final ActivityService activityService;

@@ -180,6 +180,61 @@ export default function Community() {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Refreshes in 3d</span>
               </div>
               
+              {/* Leaderboard 3D Animated Podium */}
+              {leaderboardData.length >= 3 && (
+                <div className="bg-gradient-to-b from-slate-900 via-brand-950 to-slate-900 text-white p-6 relative overflow-hidden border-b border-slate-800">
+                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 50% 30%, #10b981 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
+                  
+                  <div className="flex justify-center items-end gap-3 sm:gap-6 pt-4 pb-2 relative z-10">
+                    {/* Rank 2 (Silver) */}
+                    <div className="flex flex-col items-center animate-podium-2">
+                      <div className="relative mb-2">
+                        <div className="w-12 h-12 rounded-full bg-slate-200 text-slate-800 font-bold flex items-center justify-center text-sm border-2 border-slate-300 shadow-lg">
+                          🥈
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-slate-300 text-slate-900 text-[10px] font-black flex items-center justify-center shadow">2</span>
+                      </div>
+                      <p className="text-xs font-bold text-slate-200 truncate max-w-[90px] text-center">{leaderboardData[1]?.name}</p>
+                      <span className="text-[10px] text-emerald-400 font-extrabold">{leaderboardData[1]?.total}</span>
+                      <div className="w-20 sm:w-24 h-20 bg-slate-800/90 border-t-4 border-slate-300 rounded-t-xl mt-2 flex items-center justify-center shadow-lg">
+                        <span className="text-lg font-black text-slate-400">#2</span>
+                      </div>
+                    </div>
+
+                    {/* Rank 1 (Gold - Center Champion) */}
+                    <div className="flex flex-col items-center animate-podium-1">
+                      <div className="relative mb-2">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-950 font-bold flex items-center justify-center text-xl border-2 border-yellow-200 shadow-xl animate-bounce">
+                          👑
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-amber-400 text-amber-950 text-xs font-black flex items-center justify-center shadow-md">1</span>
+                      </div>
+                      <p className="text-xs font-black text-amber-300 truncate max-w-[110px] text-center">{leaderboardData[0]?.name}</p>
+                      <span className="text-xs text-emerald-300 font-black">{leaderboardData[0]?.total}</span>
+                      <div className="w-24 sm:w-28 h-28 bg-gradient-to-b from-amber-500/20 to-amber-900/40 border-t-4 border-amber-400 rounded-t-xl mt-2 flex flex-col items-center justify-center shadow-2xl">
+                        <Trophy size={20} className="text-amber-400 mb-1 animate-pulse" />
+                        <span className="text-xl font-black text-amber-300">#1</span>
+                      </div>
+                    </div>
+
+                    {/* Rank 3 (Bronze) */}
+                    <div className="flex flex-col items-center animate-podium-3">
+                      <div className="relative mb-2">
+                        <div className="w-12 h-12 rounded-full bg-amber-800 text-amber-100 font-bold flex items-center justify-center text-sm border-2 border-amber-600 shadow-lg">
+                          🥉
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-700 text-white text-[10px] font-black flex items-center justify-center shadow">3</span>
+                      </div>
+                      <p className="text-xs font-bold text-slate-300 truncate max-w-[90px] text-center">{leaderboardData[2]?.name}</p>
+                      <span className="text-[10px] text-emerald-400 font-extrabold">{leaderboardData[2]?.total}</span>
+                      <div className="w-20 sm:w-24 h-16 bg-amber-950/60 border-t-4 border-amber-700 rounded-t-xl mt-2 flex items-center justify-center shadow-lg">
+                        <span className="text-lg font-black text-amber-600">#3</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="divide-y divide-slate-100">
                 {leaderboardData.map((user) => (
                   <div

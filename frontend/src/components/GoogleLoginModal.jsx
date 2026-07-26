@@ -8,17 +8,13 @@ export default function GoogleLoginModal({ isOpen, onClose, onSelectAccount }) {
   const [clientIdInput, setClientIdInput] = useState("");
   const [configError, setConfigError] = useState("");
 
-  const [mockEmail, setMockEmail] = useState("developer@example.com");
-
   useEffect(() => {
     if (clientId && window.google && isOpen) {
-      // Timeout to ensure DOM element is rendered
       const timer = setTimeout(() => {
         try {
           window.google.accounts.id.initialize({
             client_id: clientId,
             callback: (response) => {
-              // Send the real JWT ID Token to the parent handler
               onSelectAccount(response.credential);
               onClose();
             },
@@ -58,17 +54,9 @@ export default function GoogleLoginModal({ isOpen, onClose, onSelectAccount }) {
     setClientId("");
   };
 
-  const handleBypassLogin = (e) => {
-    e.preventDefault();
-    if (mockEmail.trim()) {
-      onSelectAccount("dev-token-" + mockEmail.trim().toLowerCase());
-      onClose();
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md">
-      <div className="bg-[#131314] text-[#e3e3e3] rounded-3xl border border-zinc-800 w-full max-w-2xl min-h-[450px] flex flex-col overflow-hidden relative shadow-2xl mx-4">
+      <div className="bg-[#131314] text-[#e3e3e3] rounded-3xl border border-zinc-800 w-full max-w-2xl min-h-[400px] flex flex-col overflow-hidden relative shadow-2xl mx-4">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -156,29 +144,6 @@ export default function GoogleLoginModal({ isOpen, onClose, onSelectAccount }) {
                 </button>
               </div>
             )}
-
-            {/* Developer Bypass Option */}
-            <div className="mt-8 pt-6 border-t border-zinc-800/80 text-center w-full max-w-md mx-auto">
-              <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider block mb-3">
-                Local Dev Bypass (No Client ID Setup Required)
-              </span>
-              <form onSubmit={handleBypassLogin} className="flex gap-2 justify-center">
-                <input
-                  type="email"
-                  required
-                  value={mockEmail}
-                  onChange={(e) => setMockEmail(e.target.value)}
-                  placeholder="developer@example.com"
-                  className="bg-[#1e1f20] text-white border border-zinc-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px]"
-                />
-                <button
-                  type="submit"
-                  className="bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl px-4 py-2 text-xs font-semibold border border-zinc-750 transition"
-                >
-                  Bypass with Mock Google Account
-                </button>
-              </form>
-            </div>
           </div>
         </div>
       </div>

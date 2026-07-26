@@ -64,21 +64,25 @@ export default function Layout() {
   ]);
   const [chatLoading, setChatLoading] = useState(false);
 
-  const handleSendChat = async (e) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    const msg = chatInput;
+  const handleSendChatPrompt = async (msgText) => {
+    if (!msgText || chatLoading) return;
     setChatInput("");
-    setChatMessages((prev) => [...prev, { sender: "user", text: msg }]);
+    setChatMessages((prev) => [...prev, { sender: "user", text: msgText }]);
     setChatLoading(true);
     try {
-      const res = await chatWithGreenCoach(msg);
+      const res = await chatWithGreenCoach(msgText);
       setChatMessages((prev) => [...prev, { sender: "bot", text: res.reply }]);
     } catch (err) {
       setChatMessages((prev) => [...prev, { sender: "bot", text: "Sorry, I am having trouble connecting right now. Please try again later." }]);
     } finally {
       setChatLoading(false);
     }
+  };
+
+  const handleSendChat = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    handleSendChatPrompt(chatInput);
   };
 
   const toggleDarkMode = () => {
@@ -479,14 +483,43 @@ export default function Layout() {
                   <div
                     className={`max-w-[85%] rounded-xl p-2.5 leading-relaxed ${
                       m.sender === "user"
-                        ? "bg-brand-800 text-white font-medium"
-                        : "bg-slate-100 dark:bg-brand-900/40 text-slate-800 dark:text-slate-200 border border-slate-200/40 dark:border-brand-900/30"
+                        ? "bg-brand-800 text-white font-medium shadow-sm"
+                        : "bg-slate-100 dark:bg-brand-900/40 text-slate-800 dark:text-slate-200 border border-slate-200/40 dark:border-brand-900/30 shadow-sm"
                     }`}
                   >
                     {m.text}
                   </div>
                 </div>
               ))}
+
+              {/* Quick AI Recommendation Prompts */}
+              {chatMessages.length <= 1 && (
+                <div className="pt-2 space-y-1.5 animate-fade-in">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 flex items-center gap-1">
+                    <Sparkles size={11} className="text-amber-500" />
+                    Recommended Suggestions:
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      { icon: "💡", text: "How can I reduce transport emissions by 20%?" },
+                      { icon: "🥗", text: "What are low-carbon food alternatives?" },
+                      { icon: "⚡", text: "Tips to cut household electricity footprint" },
+                      { icon: "🌿", text: "How is my carbon score rating calculated?" },
+                    ].map((prompt, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSendChatPrompt(prompt.text)}
+                        className="text-left bg-emerald-50/80 hover:bg-emerald-100/90 dark:bg-brand-900/40 dark:hover:bg-brand-900/70 border border-emerald-100 dark:border-brand-850/40 rounded-xl p-2 text-[10px] font-medium text-slate-700 dark:text-slate-200 transition active:scale-[0.98] flex items-center gap-2 group shadow-sm"
+                      >
+                        <span className="text-xs group-hover:scale-110 transition">{prompt.icon}</span>
+                        <span className="flex-1 truncate">{prompt.text}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {chatLoading && (
                 <div className="flex justify-start">
                   <div className="bg-slate-100 dark:bg-brand-900/40 text-slate-400 rounded-xl px-3 py-2 flex items-center gap-1">

@@ -163,18 +163,62 @@ export default function LogActivity() {
     }
   };
 
+  const NORMALIZE_TYPE_MAP = {
+    bus_km: "public_transit_km",
+    train_km: "public_transit_km",
+    kwh_gas: "kwh_natural_gas",
+    kwh_solar: "kwh_renewable",
+    kwh_wind: "kwh_renewable",
+    meal_pork: "meal_beef",
+    meal_fish: "meal_chicken",
+    furniture_purchase: "household_goods",
+  };
+
+  const TYPE_UNIT_MAP = {
+    car_km_petrol: "km",
+    car_km_diesel: "km",
+    car_km_electric: "km",
+    flight_short_hours: "hours",
+    flight_long_hours: "hours",
+    public_transit_km: "km",
+    kwh_coal: "kWh",
+    kwh_natural_gas: "kWh",
+    kwh_renewable: "kWh",
+    kwh_grid_avg: "kWh",
+    meal_beef: "servings",
+    meal_chicken: "servings",
+    meal_vegetarian: "servings",
+    meal_vegan: "servings",
+    clothing_purchase: "amount",
+    electronics_purchase: "amount",
+    household_goods: "amount",
+  };
+
   const handleConfirmAiLog = async () => {
     if (!aiParsed || aiParsed.length === 0) return;
     setSubmitting(true);
     setAiError("");
     try {
       for (const act of aiParsed) {
+        let type = NORMALIZE_TYPE_MAP[act.activityType] || act.activityType || "car_km_petrol";
+        if (!TYPE_UNIT_MAP[type]) type = "car_km_petrol";
+
+        const unit = TYPE_UNIT_MAP[type] || act.unit || "km";
+        const cat = (act.category || "transport").toLowerCase();
+        const qty = Math.max(0.1, parseFloat(act.quantity) || 1.0);
+        
+        // Ensure logDate is valid YYYY-MM-DD
+        let dateStr = act.logDate;
+        if (!dateStr || isNaN(Date.parse(dateStr))) {
+          dateStr = new Date().toISOString().split("T")[0];
+        }
+
         await logActivity({
-          category: act.category,
-          activityType: act.activityType,
-          quantity: parseFloat(act.quantity),
-          unit: act.unit,
-          logDate: act.logDate,
+          category: cat,
+          activityType: type,
+          quantity: qty,
+          unit: unit,
+          logDate: dateStr,
         });
       }
       setSuccess(true);
@@ -182,8 +226,10 @@ export default function LogActivity() {
       setAiParsed(null);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setAiError("Error logging parsed activities. Please verify the details or use the manual form.");
-      setTimeout(() => setAiError(""), 5000);
+      console.error("AI activity log error:", err);
+      const msg = err.response?.data?.message || err.response?.data?.error || "Error logging parsed activities. Please verify the details or use the manual form.";
+      setAiError(msg);
+      setTimeout(() => setAiError(""), 6000);
     } finally {
       setSubmitting(false);
     }

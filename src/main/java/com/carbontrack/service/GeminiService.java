@@ -63,12 +63,12 @@ public class GeminiService {
                     + "}";
 
             String prompt = "You are a specialized carbon footprint logging agent. Parse the user's input into one or more carbon activity logs. "
-                    + "Map activityType exactly to these definitions if matching:\n"
-                    + "- Transport: 'car_km_petrol' (unit: km), 'car_km_diesel' (unit: km), 'car_km_electric' (unit: km), 'flight_short_hours' (unit: hours), 'flight_long_hours' (unit: hours), 'bus_km' (unit: km), 'train_km' (unit: km)\n"
-                    + "- Electricity: 'kwh_coal' (unit: kWh), 'kwh_gas' (unit: kWh), 'kwh_solar' (unit: kWh), 'kwh_wind' (unit: kWh)\n"
-                    + "- Food: 'meal_beef' (unit: servings), 'meal_pork' (unit: servings), 'meal_chicken' (unit: servings), 'meal_fish' (unit: servings), 'meal_vegetarian' (unit: servings), 'meal_vegan' (unit: servings)\n"
-                    + "- Shopping: 'clothing_purchase' (unit: amount), 'electronics_purchase' (unit: amount), 'furniture_purchase' (unit: amount)\n"
-                    + "The current date is " + LocalDate.now().toString() + ". Parse relative dates (e.g. 'yesterday', 'today') accordingly.\n"
+                    + "Map activityType and unit exactly to these valid system definitions:\n"
+                    + "- Transport: 'car_km_petrol' (unit: km), 'car_km_diesel' (unit: km), 'car_km_electric' (unit: km), 'flight_short_hours' (unit: hours), 'flight_long_hours' (unit: hours), 'public_transit_km' (unit: km)\n"
+                    + "- Electricity: 'kwh_coal' (unit: kWh), 'kwh_natural_gas' (unit: kWh), 'kwh_renewable' (unit: kWh), 'kwh_grid_avg' (unit: kWh)\n"
+                    + "- Food: 'meal_beef' (unit: servings), 'meal_chicken' (unit: servings), 'meal_vegetarian' (unit: servings), 'meal_vegan' (unit: servings)\n"
+                    + "- Shopping: 'clothing_purchase' (unit: amount), 'electronics_purchase' (unit: amount), 'household_goods' (unit: amount)\n"
+                    + "The current date is " + LocalDate.now().toString() + " in ISO format YYYY-MM-DD. Parse relative dates (e.g. 'yesterday', 'today') into YYYY-MM-DD format.\n"
                     + "User Input: \"" + text + "\"";
 
             return callGeminiStructured(url, prompt, jsonSchema, "activities");
@@ -290,13 +290,13 @@ public class GeminiService {
             map.put("unit", "kWh");
             map.put("logDate", logDate);
 
-            String type = "kwh_coal";
-            if (lower.contains("solar")) {
-                type = "kwh_solar";
-            } else if (lower.contains("gas")) {
-                type = "kwh_gas";
-            } else if (lower.contains("wind")) {
-                type = "kwh_wind";
+            String type = "kwh_grid_avg";
+            if (lower.contains("solar") || lower.contains("wind") || lower.contains("renewable")) {
+                type = "kwh_renewable";
+            } else if (lower.contains("gas") || lower.contains("natural gas")) {
+                type = "kwh_natural_gas";
+            } else if (lower.contains("coal")) {
+                type = "kwh_coal";
             }
             map.put("activityType", type);
             list.add(map);
@@ -305,7 +305,7 @@ public class GeminiService {
         // 2. Transport
         if (lower.contains("car") || lower.contains("drive") || lower.contains("drove") || lower.contains("km") 
                 || lower.contains("mile") || lower.contains("flight") || lower.contains("fly") || lower.contains("flew")
-                || lower.contains("bus") || lower.contains("train") || lower.contains("travel")) {
+                || lower.contains("bus") || lower.contains("train") || lower.contains("transit") || lower.contains("travel")) {
             
             Map<String, Object> map = new HashMap<>();
             map.put("category", "transport");
@@ -319,10 +319,8 @@ public class GeminiService {
             if (lower.contains("flight") || lower.contains("fly") || lower.contains("flew")) {
                 unit = "hours";
                 type = quantity > 5 ? "flight_long_hours" : "flight_short_hours";
-            } else if (lower.contains("bus")) {
-                type = "bus_km";
-            } else if (lower.contains("train")) {
-                type = "train_km";
+            } else if (lower.contains("bus") || lower.contains("train") || lower.contains("transit") || lower.contains("public")) {
+                type = "public_transit_km";
             } else if (lower.contains("electric")) {
                 type = "car_km_electric";
             } else if (lower.contains("diesel")) {
@@ -348,14 +346,10 @@ public class GeminiService {
             map.put("logDate", logDate);
 
             String type = "meal_vegetarian";
-            if (lower.contains("beef") || lower.contains("steak")) {
+            if (lower.contains("beef") || lower.contains("steak") || lower.contains("pork")) {
                 type = "meal_beef";
-            } else if (lower.contains("pork")) {
-                type = "meal_pork";
-            } else if (lower.contains("chicken")) {
+            } else if (lower.contains("chicken") || lower.contains("fish")) {
                 type = "meal_chicken";
-            } else if (lower.contains("fish")) {
-                type = "meal_fish";
             } else if (lower.contains("vegan")) {
                 type = "meal_vegan";
             }
@@ -382,8 +376,6 @@ public class GeminiService {
                 type = "clothing_purchase";
             } else if (lower.contains("electronics") || lower.contains("phone") || lower.contains("computer") || lower.contains("laptop")) {
                 type = "electronics_purchase";
-            } else if (lower.contains("furniture") || lower.contains("chair") || lower.contains("table")) {
-                type = "furniture_purchase";
             }
             
             map.put("activityType", type);

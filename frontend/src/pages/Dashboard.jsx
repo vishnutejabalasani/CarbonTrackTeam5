@@ -1,18 +1,11 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Bell,
-  Settings,
-  Plus,
-  Car,
-  Zap,
-  Utensils,
-  ShoppingBag,
+  FileText,
+  FileSpreadsheet,
   Leaf,
   Award,
   TrendingDown,
-  Calculator,
-  Compass,
   ArrowUpRight,
   Flame,
   Activity,
@@ -21,125 +14,266 @@ import {
   XCircle,
   CheckCircle2,
   Trophy,
-  Sparkles
+  Sparkles,
+  Download,
+  Car,
+  Zap,
+  Utensils,
+  ShoppingBag,
+  RefreshCw,
 } from "lucide-react";
 import { getWeeklySummary, getRecentActivities, getForecast } from "../api/activities";
 import { getCurrentGoal } from "../api/goals";
 import { getEarnedBadges } from "../api/badges";
+import { getWeatherData } from "../api/weather";
+import { getDashboardMetrics, getWeeklyEmissionsData } from "../api/dashboard";
+import { getEsgReport } from "../api/esg";
+import { generateEsgPdfReport } from "../utils/pdfExport";
+import { generateEsgExcelReport } from "../utils/excelExport";
+
 import SetGoalModal from "../components/SetGoalModal";
-import { CategoryPieChart, DailyEmissionsChart } from "../components/Charts";
+import { CategoryPieChart } from "../components/Charts";
 import GrowingForest from "../components/GrowingForest";
 import OffsetSimulator from "../components/OffsetSimulator";
-import { getWeatherData } from "../api/weather";
+import WeeklyEmissionsChart from "../components/WeeklyEmissionsChart";
+import LottieAnimation from "../components/LottieAnimation";
+import { sustainabilityAnimationData } from "../assets/animations/sustainabilityData";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+
   const [summary, setSummary] = useState(null);
+  const [weeklyChartData, setWeeklyChartData] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [goal, setGoalState] = useState(null);
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
+
   const [weather, setWeather] = useState({
     temp: 22,
     description: "Sunny",
     aqiLabel: "Excellent",
     aqiColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/50",
     cityName: "Bangalore",
-    updatedAt: "Just now"
+    updatedAt: "Just now",
   });
 
-  const loadData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryData, logsData, goalData, badgesData, forecastDataRes, weatherDataRes] = await Promise.allSettled([
-        getWeeklySummary(),
+      const [
+        dashRes,
+        weeklyChartRes,
+        logsData,
+        goalData,
+        badgesData,
+        forecastRes,
+        weatherRes,
+      ] = await Promise.allSettled([
+        getDashboardMetrics(),
+        getWeeklyEmissionsData(),
         getRecentActivities(5),
         getCurrentGoal(),
         getEarnedBadges(),
         getForecast(),
         getWeatherData(),
       ]);
-      setSummary(summaryData.status === "fulfilled" ? summaryData.value : null);
+
+      if (dashRes.status === "fulfilled" && dashRes.value) {
+        setSummary(dashRes.value);
+      } else {
+        const fallbackSummary = await getWeeklySummary().catch(() => null);
+        setSummary(fallbackSummary);
+      }
+
+      if (weeklyChartRes.status === "fulfilled" && weeklyChartRes.value) {
+        setWeeklyChartData(weeklyChartRes.value);
+      }
+
       setRecentLogs(logsData.status === "fulfilled" ? logsData.value : []);
       setGoalState(goalData.status === "fulfilled" ? goalData.value : null);
       setEarnedBadges(badgesData.status === "fulfilled" ? badgesData.value || [] : []);
-      setForecastData(forecastDataRes.status === "fulfilled" ? forecastDataRes.value || [] : []);
-      if (weatherDataRes.status === "fulfilled" && weatherDataRes.value) {
-        setWeather(weatherDataRes.value);
+      setForecastData(forecastRes.status === "fulfilled" ? forecastRes.value || [] : []);
+
+      if (weatherRes.status === "fulfilled" && weatherRes.value) {
+        setWeather(weatherRes.value);
       }
+    } catch (err) {
+      console.error("Dashboard loading error:", err);
     } finally {
-      setLoading(false);
+      // Small artificial delay for smooth Lottie transition
+      setTimeout(() => setLoading(false), 600);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  // Handle PDF Export (FEATURE 3)
+  const handleDownloadPdf = async () => {
+    setExportingPdf(true);
+    try {
+      const report = await getEsgReport(0);
+      generateEsgPdfReport(report);
+    } catch (err) {
+      console.error("Failed to export PDF:", err);
+      alert("Unable to generate PDF report. Please check server logs.");
+    } finally {
+      setExportingPdf(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Handle Excel Export (FEATURE 4)
+  const handleDownloadExcel = async () => {
+    setExportingExcel(true);
+    try {
+      const report = await getEsgReport(0);
+      generateEsgExcelReport(report);
+    } catch (err) {
+      console.error("Failed to export Excel:", err);
+      alert("Unable to generate Excel report. Please check server logs.");
+    } finally {
+      setExportingExcel(false);
+    }
+  };
 
-  const hasActivity = summary && summary.totalKgCo2e > 0;
-
+  // Lottie Loading State (FEATURE 1)
   if (loading) {
-    return <DashboardSkeleton />;
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center space-y-4 animate-fade-in">
+        <div className="relative">
+          <LottieAnimation
+            animationData={sustainabilityAnimationData}
+            className="w-56 h-56"
+            loop={true}
+            autoplay={true}
+          />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+            Calculating ESG Footprint Metrics...
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
+            Fetching activity logs, computing weekly carbon totals, and preparing real-time analytics dashboard.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in transition-all duration-500">
       
       {/* Goal Alert Banner */}
       {goal?.alertMessage && (
-        <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-800 text-xs shadow-sm">
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 rounded-2xl flex items-start gap-3 text-rose-800 dark:text-rose-300 text-xs shadow-sm">
           <XCircle className="shrink-0 text-rose-500 mt-0.5" size={16} />
           <div>
             <p className="font-bold">Weekly Carbon Alert</p>
-            <p className="text-rose-600/90 mt-0.5">{goal.alertMessage}</p>
+            <p className="text-rose-600/90 dark:text-rose-400 mt-0.5">{goal.alertMessage}</p>
           </div>
         </div>
       )}
 
-      {/* 1. Main Hero Panel: Sustainability Impact */}
-      <div className="bg-gradient-to-br from-brand-900 to-emerald-950 text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-xl border border-emerald-800/40">
-        {/* Decorative background radial pattern */}
-        <div className="absolute right-0 bottom-0 w-96 h-96 bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.15),transparent_60%)] pointer-events-none" />
-        
-        <div className="relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-brand-100">
-            <Leaf size={11} className="text-brand-300 rotate-12" />
-            SaaS Operational Report
-          </div>
-          
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight max-w-xl">
-            Your Sustainability Impact
-          </h1>
-          
-          <p className="text-brand-100 text-sm max-w-md leading-relaxed">
-            Track operational footprint vectors in real-time, benchmark categories against climate targets, and implement reduction guidelines.
-          </p>
+      {/* 1. Main Hero Panel & ESG Report Export Banner */}
+      <div className="bg-gradient-to-r from-[#0a2315] via-[#0d2d1b] to-[#06180d] text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl border border-emerald-800/40">
+        {/* Background ambient glowing gradient aura */}
+        <div className="absolute right-0 bottom-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.14),transparent_65%)] pointer-events-none animate-glow-pulse" />
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
-              <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Carbon Score</p>
-              <p className="text-xl font-extrabold text-white mt-1">A+ Rating</p>
+        {/* Animated Floating Ambient Icons matching reference image placement */}
+        <div className="absolute top-4 left-[34%] text-emerald-400/80 pointer-events-none animate-float-gentle">
+          <Leaf size={24} strokeWidth={1.5} />
+        </div>
+        <div className="absolute top-6 right-[35%] text-amber-300/80 pointer-events-none animate-spin-slow">
+          <Sun size={22} strokeWidth={1.5} />
+        </div>
+        <div className="absolute bottom-6 right-[26%] text-teal-300/70 pointer-events-none animate-breeze">
+          <Wind size={28} strokeWidth={1.5} />
+        </div>
+
+        <div className="relative z-10 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white/90 border border-white/10">
+              <span className="text-xs">📣</span>
+              SAAS OPERATIONAL REPORT
             </div>
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
-              <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">CO₂ Saved</p>
-              <p className="text-xl font-extrabold text-brand-300 mt-1">
-                {summary ? (35 - summary.totalKgCo2e > 0 ? (35 - summary.totalKgCo2e).toFixed(1) : "4.2") : "0"} kg
-              </p>
+
+            {/* Download PDF and Download Excel Buttons */}
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={exportingPdf}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg transition duration-200 disabled:opacity-50 focus:outline-none"
+              >
+                {exportingPdf ? <RefreshCw className="animate-spin" size={14} /> : <FileText size={14} />}
+                {exportingPdf ? "Generating..." : "Download PDF Report"}
+              </button>
+
+              <button
+                onClick={handleDownloadExcel}
+                disabled={exportingExcel}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/20 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-lg transition duration-200 disabled:opacity-50 focus:outline-none"
+              >
+                {exportingExcel ? <RefreshCw className="animate-spin" size={14} /> : <FileSpreadsheet size={14} />}
+                {exportingExcel ? "Exporting..." : "Download Excel"}
+              </button>
             </div>
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
-              <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Trees Restored</p>
-              <p className="text-xl font-extrabold text-emerald-400 mt-1">
-                {summary ? Math.max(1, Math.round(summary.totalKgCo2e / 12)) : 0} Trees
-              </p>
-            </div>
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 flex items-center gap-2">
-              <div>
-                <p className="text-[10px] text-brand-200 font-bold uppercase tracking-wide">Active Streak</p>
-                <p className="text-xl font-extrabold text-amber-400 mt-0.5">5 Days</p>
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight flex items-center gap-2">
+              Your Sustainability Impact
+              <span className="text-2xl animate-float-gentle inline-block">🌿</span>
+            </h1>
+            <p className="text-slate-300/90 text-sm max-w-xl leading-relaxed">
+              Track operational footprint vectors in real-time, benchmark categories against climate targets, and implement reduction guidelines.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3">
+            {/* Card 1: Carbon Score */}
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 relative group hover:bg-white/10 transition duration-300">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Carbon Score</p>
+                <Award size={14} className="text-emerald-400/80" />
               </div>
-              <Flame size={20} className="text-amber-500 fill-amber-500 animate-bounce" />
+              <p className="text-xl font-extrabold text-white mt-1.5">A+ Rating</p>
+            </div>
+
+            {/* Card 2: CO2 Saved */}
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 relative group hover:bg-white/10 transition duration-300">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">CO₂ Saved</p>
+                <TrendingDown size={14} className="text-emerald-400" />
+              </div>
+              <p className="text-xl font-extrabold text-emerald-400 mt-1.5">
+                {summary ? (35 - (summary.totalKgCo2e || 0) > 0 ? (35 - summary.totalKgCo2e).toFixed(1) : "4.2") : "4.2"} kg
+              </p>
+            </div>
+
+            {/* Card 3: Trees Restored */}
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 relative group hover:bg-white/10 transition duration-300">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Trees Restored</p>
+                <Leaf size={14} className="text-emerald-400/80" />
+              </div>
+              <p className="text-xl font-extrabold text-emerald-400 mt-1.5">
+                {summary ? Math.max(1, Math.round((summary.totalKgCo2e || 10) / 12)) : 9} Trees
+              </p>
+            </div>
+
+            {/* Card 4: Active Streak */}
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 relative group hover:bg-white/10 transition duration-300 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Active Streak</p>
+                <p className="text-xl font-extrabold text-amber-400 mt-1.5">5 Days</p>
+              </div>
+              <Flame size={22} className="text-amber-500 fill-amber-500 animate-bounce" />
             </div>
           </div>
         </div>
@@ -149,26 +283,26 @@ export default function Dashboard() {
       <div className="grid md:grid-cols-4 gap-6">
         <KPICard
           title="Today's Emission"
-          value={`${summary ? (summary.totalKgCo2e / 7).toFixed(1) : "0"} kg`}
+          value={`${summary ? ((summary.totalKgCo2e || 0) / 7).toFixed(1) : "0.0"} kg`}
           subtext="Based on weekly logged metrics"
           trend="-12% vs yesterday"
           isPositive={true}
         />
         <KPICard
           title="Weekly Total"
-          value={`${summary ? summary.totalKgCo2e : "0"} kg`}
+          value={`${summary ? (summary.totalKgCo2e || 0) : "0.0"} kg`}
           subtext={`Weekly Target: ${summary?.weeklyTargetKg || 35} kg`}
           trend={`${summary ? (summary.percentChangeVsLastWeek ?? 0) : 0}% vs last week`}
           isPositive={summary ? (summary.percentChangeVsLastWeek ?? 0) <= 0 : true}
         />
         <KPICard
           title="Monthly Projection"
-          value={`${summary ? (summary.totalKgCo2e * 4.3).toFixed(0) : "0"} kg`}
+          value={`${summary ? ((summary.totalKgCo2e || 0) * 4.3).toFixed(0) : "0"} kg`}
           subtext="Projected monthly operations"
           trend="-4.2% overall pace"
           isPositive={true}
         />
-        
+
         {/* Live Weather & AQI card */}
         <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 p-5 space-y-3 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -197,30 +331,57 @@ export default function Dashboard() {
         
         {/* Left pane: Charts & Analytics details */}
         <div className="space-y-8">
+          
+          {/* FEATURE 6: Live Weekly Emissions Chart */}
+          <WeeklyEmissionsChart data={weeklyChartData} loading={false} />
+
           {/* Animated Ecological Forest */}
           <GrowingForest goal={goal} />
 
-          {/* Charts Section */}
+          {/* Category Distribution Chart */}
           <div className="grid sm:grid-cols-2 gap-6">
             <CategoryPieChart days={7} data={[
               { name: "Transport", value: summary?.transportKg || 12 },
               { name: "Electricity", value: summary?.electricityKg || 15 },
               { name: "Food", value: summary?.foodKg || 8 },
-              { name: "Shopping", value: 5 }
+              { name: "Shopping", value: summary?.shoppingKg || 5 }
             ]} />
-            
-            <DailyEmissionsChart days={7} target={summary?.weeklyTargetKg / 7 || 5} forecast={forecastData} />
+
+            {/* Quick Summary Card */}
+            <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-slate-900 dark:text-white text-sm">Target vs Actual Pace</h4>
+                <Sparkles size={16} className="text-amber-500" />
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    <span>Weekly Target Progress</span>
+                    <span>{(((summary?.totalKgCo2e || 0) / (summary?.weeklyTargetKg || 35)) * 100).toFixed(0)}%</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 dark:bg-brand-900/40 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                      style={{ width: `${Math.min(100, (((summary?.totalKgCo2e || 0) / (summary?.weeklyTargetKg || 35)) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
+                  Your carbon emissions are trending {summary?.percentChangeVsLastWeek <= 0 ? "below" : "near"} the baseline threshold. Keep logging to maintain your streak!
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Activity Logs Timeline */}
+          {/* Live Footprint Stream */}
           <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 shadow-sm p-6 space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
-                  <Activity size={18} className="text-brand-850 dark:text-brand-350" />
+                  <Activity size={18} className="text-emerald-600 dark:text-emerald-400" />
                   Live Footprint Stream
                 </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Real-time breakdown of logged user activity vectors.</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Real-time breakdown of logged activity vectors.</p>
               </div>
               <Link to="/history" className="text-xs font-bold text-brand-800 dark:text-brand-350 hover:underline flex items-center gap-0.5">
                 Full History
@@ -255,7 +416,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right pane: Calculator & Recommendations */}
+        {/* Right pane: Offset Simulator & Recommendations */}
         <div className="space-y-8">
           
           {/* Interactive Carbon Offset Simulator */}
@@ -266,7 +427,7 @@ export default function Dashboard() {
             <div className="absolute right-[-10%] top-[-10%] w-24 h-24 bg-white/5 rounded-full pointer-events-none" />
             
             <div className="flex items-center gap-2">
-              <Compass className="text-brand-300" size={18} />
+              <Sparkles className="text-brand-300" size={18} />
               <p className="font-bold text-sm">Strategic Recommendations</p>
             </div>
 
@@ -299,7 +460,7 @@ export default function Dashboard() {
           {/* Earned Badges Card */}
           <div className="bg-white dark:bg-brand-950/45 rounded-2xl border border-slate-200/60 dark:border-brand-900/40 p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2">
-              <Award className="text-brand-850 dark:text-brand-350" size={16} />
+              <Award className="text-emerald-600 dark:text-emerald-400" size={16} />
               <h3 className="font-bold text-slate-900 dark:text-white text-sm">Your Achievement Badges</h3>
             </div>
             
@@ -314,20 +475,16 @@ export default function Dashboard() {
                     "Green Champion": Award,
                     "Eco Warrior": Trophy,
                     "Transport Hero": Car,
-                    "First Goal Achieved": Trophy,
-                    "Carbon Saver 10kg": Award,
-                    "Carbon Saver 25kg": Award,
-                    "Carbon Saver 50kg": Award,
                   };
                   const Icon = badgeIconMap[badge.name] || Leaf;
                   return (
                     <div
                       key={badge.id}
-                      className="group relative flex flex-col items-center justify-center p-2 rounded-xl border border-slate-150 bg-slate-50/50 hover:bg-brand-50/30 hover:border-brand-100 transition duration-300 dark:border-brand-900/40 dark:bg-brand-900/10 dark:hover:bg-brand-900/20"
+                      className="group relative flex flex-col items-center justify-center p-2 rounded-xl border border-slate-150 bg-slate-50/50 hover:bg-brand-50/30 transition duration-300 dark:border-brand-900/40 dark:bg-brand-900/10"
                       title={`${badge.name}: ${badge.description}`}
                     >
                       <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-800 group-hover:scale-110 transition duration-300 dark:bg-brand-900/30 dark:border-brand-900/50 dark:text-brand-300">
-                        <Icon size={18} className="text-brand-850 dark:text-brand-300" />
+                        <Icon size={18} className="text-emerald-600 dark:text-emerald-300" />
                       </div>
                       <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350 text-center truncate w-full mt-1.5">{badge.name}</span>
                     </div>
@@ -336,7 +493,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-4 bg-slate-50/50 rounded-xl border border-slate-100 dark:bg-brand-900/10 dark:border-brand-900/40">
-                <p className="text-xs text-slate-400 dark:text-slate-500">No achievements yet. Log activities or complete goals to earn badges!</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">No achievements yet. Log activities to earn badges!</p>
               </div>
             )}
           </div>
@@ -345,7 +502,7 @@ export default function Dashboard() {
       </div>
 
       {showGoalModal && (
-        <SetGoalModal onClose={() => setShowGoalModal(false)} onSaved={loadData} />
+        <SetGoalModal onClose={() => setShowGoalModal(false)} onSaved={loadDashboardData} />
       )}
     </div>
   );
@@ -375,17 +532,4 @@ function CategoryIcon({ category }) {
   const map = { transport: Car, electricity: Zap, food: Utensils, shopping: ShoppingBag };
   const Icon = map[category] || ShoppingBag;
   return <Icon size={16} />;
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-pulse">
-      <div className="h-48 bg-slate-100 rounded-3xl" />
-      <div className="grid md:grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-28 bg-slate-100 rounded-2xl" />
-        ))}
-      </div>
-    </div>
-  );
 }
