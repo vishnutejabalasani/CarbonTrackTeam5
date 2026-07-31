@@ -38,4 +38,9 @@ public class NotificationController {
         notificationService.markAllAsRead();
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/monthly")
+    public ResponseEntity<Notification> triggerMonthlyNotification() {
+        return ResponseEntity.ok(notificationService.triggerMonthlyNotification());
+    }
 }

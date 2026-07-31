@@ -12,8 +12,6 @@ import {
   Wind,
   Sun,
   XCircle,
-  CheckCircle2,
-  Trophy,
   Sparkles,
   Car,
   Zap,
@@ -21,37 +19,35 @@ import {
   ShoppingBag,
   RefreshCw,
   Send,
-  Building2,
-  BarChart3,
+  Calendar,
   User,
-  LayoutGrid,
+  Plus,
 } from "lucide-react";
-import { getWeeklySummary, getRecentActivities, getForecast } from "../api/activities";
+import { getWeeklySummary, getRecentActivities } from "../api/activities";
 import { getCurrentGoal } from "../api/goals";
 import { getEarnedBadges } from "../api/badges";
 import { getWeatherData } from "../api/weather";
-import { getDashboardMetrics, getWeeklyEmissionsData } from "../api/dashboard";
+import { getDashboardMetrics, getPersonalMetrics } from "../api/dashboard";
 import { getEsgReport } from "../api/esg";
 import { generateEsgPdfReport } from "../utils/pdfExport";
 import { generateEsgExcelReport } from "../utils/excelExport";
 
 import SetGoalModal from "../components/SetGoalModal";
 import SendReportModal from "../components/SendReportModal";
-import GrowingForest from "../components/GrowingForest";
-import OffsetSimulator from "../components/OffsetSimulator";
-import WeeklyEmissionsChart from "../components/WeeklyEmissionsChart";
+import { CategoryPieChart } from "../components/Charts";
+import PersonalWeeklyComparisonChart from "../components/PersonalWeeklyComparisonChart";
+import MonthlyProgressWidget from "../components/MonthlyProgressWidget";
 import LottieAnimation from "../components/LottieAnimation";
 import { sustainabilityAnimationData } from "../assets/animations/sustainabilityData";
 
-export default function Dashboard() {
+export default function PersonalDashboard() {
   const navigate = useNavigate();
 
   const [summary, setSummary] = useState(null);
-  const [weeklyChartData, setWeeklyChartData] = useState(null);
+  const [personalMetrics, setPersonalMetrics] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [goal, setGoalState] = useState(null);
   const [earnedBadges, setEarnedBadges] = useState([]);
-  const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
@@ -67,24 +63,22 @@ export default function Dashboard() {
     updatedAt: "Just now",
   });
 
-  const loadDashboardData = useCallback(async () => {
+  const loadPersonalData = useCallback(async () => {
     setLoading(true);
     try {
       const [
         dashRes,
-        weeklyChartRes,
+        personalRes,
         logsData,
         goalData,
         badgesData,
-        forecastRes,
         weatherRes,
       ] = await Promise.allSettled([
         getDashboardMetrics(),
-        getWeeklyEmissionsData(),
+        getPersonalMetrics(),
         getRecentActivities(5),
         getCurrentGoal(),
         getEarnedBadges(),
-        getForecast(),
         getWeatherData(),
       ]);
 
@@ -95,28 +89,27 @@ export default function Dashboard() {
         setSummary(fallbackSummary);
       }
 
-      if (weeklyChartRes.status === "fulfilled" && weeklyChartRes.value) {
-        setWeeklyChartData(weeklyChartRes.value);
+      if (personalRes.status === "fulfilled" && personalRes.value) {
+        setPersonalMetrics(personalRes.value);
       }
 
       setRecentLogs(logsData.status === "fulfilled" ? logsData.value : []);
       setGoalState(goalData.status === "fulfilled" ? goalData.value : null);
       setEarnedBadges(badgesData.status === "fulfilled" ? badgesData.value || [] : []);
-      setForecastData(forecastRes.status === "fulfilled" ? forecastRes.value || [] : []);
 
       if (weatherRes.status === "fulfilled" && weatherRes.value) {
         setWeather(weatherRes.value);
       }
     } catch (err) {
-      console.error("Dashboard loading error:", err);
+      console.error("Personal dashboard loading error:", err);
     } finally {
       setTimeout(() => setLoading(false), 400);
     }
   }, []);
 
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    loadPersonalData();
+  }, [loadPersonalData]);
 
   const handleDownloadPdf = async () => {
     setExportingPdf(true);
@@ -157,15 +150,22 @@ export default function Dashboard() {
         </div>
         <div className="space-y-1">
           <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-            Calculating Executive ESG Footprint Metrics...
+            Calculating Personal Footprint Metrics...
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-            Fetching activity logs, computing weekly carbon totals, and preparing dashboard.
+            Fetching activity logs, computing weekly carbon totals, and preparing your personal dashboard.
           </p>
         </div>
       </div>
     );
   }
+
+  const todayData = personalMetrics?.todaySummary || {
+    todayEmissionsKg: 4.2,
+    activitiesLoggedToday: 2,
+    dailyAverageKg: 5.0,
+    status: "On Track",
+  };
 
   return (
     <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in transition-all duration-500">
@@ -181,12 +181,11 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 1. Main Hero Panel with Ambient Floating Animations */}
+      {/* 1. Main Hero Panel */}
       <div className="bg-gradient-to-r from-[#0a2315] via-[#0d2d1b] to-[#06180d] text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl border border-emerald-800/40">
-        {/* Ambient Glowing Aura */}
         <div className="absolute right-0 bottom-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.14),transparent_65%)] pointer-events-none animate-glow-pulse" />
 
-        {/* Ambient Floating Ambient Animations */}
+        {/* Ambient Floating Animations */}
         <div className="absolute top-4 left-[34%] text-emerald-400/80 pointer-events-none animate-float-gentle">
           <Leaf size={24} strokeWidth={1.5} />
         </div>
@@ -200,28 +199,27 @@ export default function Dashboard() {
         <div className="relative z-10 space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white/90 border border-white/10">
-              <LayoutGrid size={13} className="text-emerald-400" />
-              ESG SUSTAINABILITY PLATFORM
+              <User size={13} className="text-emerald-400" />
+              PERSONAL SUSTAINABILITY DASHBOARD
             </div>
 
-            {/* Quick Action Report Buttons */}
+            {/* Action Report Buttons */}
             <div className="flex flex-wrap items-center gap-2.5">
               <button
-                onClick={handleDownloadPdf}
-                disabled={exportingPdf}
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg transition duration-200 disabled:opacity-50 focus:outline-none cursor-pointer"
+                onClick={() => navigate("/activity")}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg transition duration-200 focus:outline-none cursor-pointer"
               >
-                {exportingPdf ? <RefreshCw className="animate-spin" size={14} /> : <FileText size={14} />}
-                {exportingPdf ? "Generating..." : "Download PDF Report"}
+                <Plus size={14} />
+                <span>Log Activity</span>
               </button>
 
               <button
-                onClick={handleDownloadExcel}
-                disabled={exportingExcel}
+                onClick={handleDownloadPdf}
+                disabled={exportingPdf}
                 className="flex items-center gap-2 bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/20 px-3.5 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-lg transition duration-200 disabled:opacity-50 focus:outline-none cursor-pointer"
               >
-                {exportingExcel ? <RefreshCw className="animate-spin" size={14} /> : <FileSpreadsheet size={14} />}
-                {exportingExcel ? "Exporting..." : "Download Excel"}
+                {exportingPdf ? <RefreshCw className="animate-spin" size={14} /> : <FileText size={14} />}
+                {exportingPdf ? "Generating..." : "PDF Report"}
               </button>
 
               <button
@@ -236,11 +234,11 @@ export default function Dashboard() {
 
           <div className="space-y-2">
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight flex items-center gap-2">
-              CarbonTrack Sustainability Dashboard
+              Personal Carbon Footprint Summary
               <span className="text-2xl animate-float-gentle inline-block">🌿</span>
             </h1>
             <p className="text-slate-300/90 text-sm max-w-xl leading-relaxed">
-              Central hub for personal carbon footprint tracking, organizational total emissions reporting, and AI-driven sustainability analytics.
+              Track your daily emissions, compare current vs previous week trends, and monitor monthly target progress.
             </p>
           </div>
 
@@ -285,70 +283,47 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 2. Executive Navigation Hub Cards with Sleek, Subtle, Non-Dominating Glassmorphism */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Personal Sustainability Dashboard Card */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl p-6 border border-emerald-500/20 dark:border-emerald-800/40 shadow-sm hover:shadow-md transition duration-300 flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
-                <User size={20} />
-              </div>
-              <span className="text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                Personal Dashboard
-              </span>
+      {/* 2. Today's Footprint Summary Card & Top Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Today's Footprint Summary Card */}
+        <div className="md:col-span-2 bg-white/90 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl border border-slate-200/60 dark:border-emerald-900/40 p-6 shadow-sm hover:shadow-md transition duration-300 flex flex-col justify-between h-full">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="text-emerald-600 dark:text-emerald-400" size={20} />
+              <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
+                Today's Footprint Summary Card
+              </h3>
             </div>
-            <h3 className="font-extrabold text-lg text-slate-900 dark:text-white">Personal Sustainability View</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Track Today's Footprint Summary, Recharts category pie charts, Current vs Previous week dual-line comparison, and monthly cumulative targets.
-            </p>
+            <span className="text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50">
+              {todayData.status}
+            </span>
           </div>
 
-          <button
-            onClick={() => navigate("/personal-dashboard")}
-            className="flex items-center justify-between w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-4 py-2.5 rounded-2xl text-xs shadow-sm transition cursor-pointer"
-          >
-            <span>Open Personal Dashboard</span>
-            <ArrowUpRight size={15} />
-          </button>
-        </div>
-
-        {/* Organizational Total Emissions Card */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl p-6 border border-emerald-500/20 dark:border-emerald-800/40 shadow-sm hover:shadow-md transition duration-300 flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
-                <Building2 size={20} />
-              </div>
-              <span className="text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                Enterprise Analytics
-              </span>
+          <div className="my-3 flex items-baseline justify-between">
+            <div>
+              <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                {todayData.todayEmissionsKg.toFixed(1)} <span className="text-sm font-bold text-slate-500">kg CO₂e</span>
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                {todayData.activitiesLoggedToday} activity vectors logged today
+              </p>
             </div>
-            <h3 className="font-extrabold text-lg text-slate-900 dark:text-white">Organizational Total Emissions</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              View enterprise-wide live category pie charts, monthly emissions bar charts, 12-week trendlines, and custom date range filters.
-            </p>
+
+            <div className="text-right bg-slate-50 dark:bg-slate-950/60 p-3 rounded-2xl border border-slate-200/50 dark:border-slate-800">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">30-Day Daily Avg</p>
+              <p className="text-base font-extrabold text-slate-700 dark:text-slate-200">{todayData.dailyAverageKg.toFixed(1)} kg</p>
+            </div>
           </div>
 
-          <button
-            onClick={() => navigate("/org-emissions")}
-            className="flex items-center justify-between w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-extrabold px-4 py-2.5 rounded-2xl text-xs shadow-sm transition cursor-pointer"
-          >
-            <span>Open Org Emissions</span>
-            <ArrowUpRight size={15} />
-          </button>
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-500">
+            <span>Today vs Daily Target Baseline</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+              {todayData.todayEmissionsKg <= todayData.dailyAverageKg ? "Within Green Target" : "Slightly Above Average"}
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* 3. Top KPI Summary Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-        <KPICard
-          title="Today's Emission"
-          value={`${summary ? ((summary.totalKgCo2e || 0) / 7).toFixed(1) : "0.0"} kg`}
-          subtext="Based on logged activity"
-          trend="-12% vs yesterday"
-          isPositive={true}
-        />
+        {/* Weekly Total */}
         <KPICard
           title="Weekly Total"
           value={`${summary ? (summary.totalKgCo2e || 0) : "0.0"} kg`}
@@ -356,15 +331,8 @@ export default function Dashboard() {
           trend={`${summary ? (summary.percentChangeVsLastWeek ?? 0) : 0}% vs last week`}
           isPositive={summary ? (summary.percentChangeVsLastWeek ?? 0) <= 0 : true}
         />
-        <KPICard
-          title="Monthly Projection"
-          value={`${summary ? ((summary.totalKgCo2e || 0) * 4.3).toFixed(0) : "0"} kg`}
-          subtext="Projected monthly operations"
-          trend="-4.2% overall pace"
-          isPositive={true}
-        />
 
-        {/* Live Weather & AQI card */}
+        {/* Weather Card */}
         <div className="bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-emerald-900/40 p-5 space-y-3 shadow-sm flex flex-col justify-between h-full">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Climate / Environment</span>
@@ -387,132 +355,137 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 4. Lower Sections: Forest, Footprint Stream, Simulator */}
-      <div className="grid lg:grid-cols-[1fr_360px] gap-8">
-        
-        {/* Left Column */}
-        <div className="space-y-8">
-          <WeeklyEmissionsChart data={weeklyChartData} loading={false} />
-          <GrowingForest goal={goal} />
+      {/* 3. Personal Analytics Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Personal Weekly Comparison Line Chart (Current Week vs Previous Week) */}
+        <PersonalWeeklyComparisonChart
+          data={personalMetrics?.weeklyComparison}
+          loading={loading}
+        />
 
-          {/* Live Footprint Stream */}
-          <div className="bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-emerald-900/40 shadow-sm p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
-                  <Activity size={18} className="text-emerald-600 dark:text-emerald-400" />
-                  Live Footprint Stream
-                </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Real-time breakdown of logged activity vectors.</p>
+        {/* Monthly Cumulative Progress Bar Widget */}
+        <MonthlyProgressWidget
+          monthlyProgress={personalMetrics?.monthlyProgress}
+          loading={loading}
+        />
+      </div>
+
+      {/* 4. Category Pie Chart & Target vs Actual Pace Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CategoryPieChart days={7} data={personalMetrics?.categoryBreakdown || [
+          { name: "Transport", value: summary?.transportKg || 12 },
+          { name: "Electricity", value: summary?.electricityKg || 15 },
+          { name: "Food", value: summary?.foodKg || 8 },
+          { name: "Shopping", value: summary?.shoppingKg || 5 }
+        ]} />
+
+        {/* Target vs Actual Pace Card */}
+        <div className="bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-emerald-900/40 p-6 shadow-sm flex flex-col justify-between h-full space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-extrabold text-slate-900 dark:text-white text-base">Target vs Actual Pace</h4>
+            <Sparkles size={18} className="text-amber-500" />
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                <span>Weekly Target Progress</span>
+                <span>{(((summary?.totalKgCo2e || 0) / (summary?.weeklyTargetKg || 35)) * 100).toFixed(0)}%</span>
               </div>
-              <Link to="/history" className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-0.5">
-                Full History
-                <ArrowUpRight size={13} />
-              </Link>
+              <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-200/40 dark:border-slate-800">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-1000"
+                  style={{ width: `${Math.min(100, (((summary?.totalKgCo2e || 0) / (summary?.weeklyTargetKg || 35)) * 100))}%` }}
+                />
+              </div>
             </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Your carbon emissions are trending {summary?.percentChangeVsLastWeek <= 0 ? "below" : "near"} the baseline threshold. Keep logging to maintain your streak!
+            </p>
+          </div>
 
-            <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-              {recentLogs.length > 0 ? (
-                recentLogs.map((log) => (
-                  <div key={log.id} className="flex gap-4 relative">
-                    <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0 relative z-10 shadow-sm">
-                      <CategoryIcon category={log.category} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{log.activityType}</p>
-                        <span className="text-[10px] font-bold text-slate-900 dark:text-slate-100 shrink-0 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
-                          {log.calculatedEmissionsKgCO2e?.toFixed(1)} kg CO₂
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{log.logDate}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-xs text-slate-400 dark:text-slate-500">No recent activity logs. Click Quick Log above to start tracking!</p>
-                </div>
-              )}
-            </div>
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+            <span className="font-semibold text-slate-500">Weekly Target Cap</span>
+            <span className="font-black text-emerald-600 dark:text-emerald-400">{summary?.weeklyTargetKg || 35} kg CO₂e</span>
           </div>
         </div>
+      </div>
 
-        {/* Right Column */}
-        <div className="space-y-8">
-          
-          {/* Interactive Carbon Offset Simulator */}
-          <OffsetSimulator />
-
-          {/* Strategic Recommendations Card */}
-          <div className="bg-[#0f2e1c] text-white rounded-2xl p-6 space-y-4 shadow-md border border-emerald-800/40 relative overflow-hidden">
-            <div className="absolute right-[-10%] top-[-10%] w-24 h-24 bg-white/5 rounded-full pointer-events-none" />
-            
-            <div className="flex items-center gap-2">
-              <Sparkles className="text-amber-400" size={18} />
-              <p className="font-bold text-sm">Strategic Recommendations</p>
+      {/* 5. Live Footprint Stream & Achievement Badges */}
+      <div className="grid lg:grid-cols-[1fr_360px] gap-8">
+        {/* Live Footprint Stream */}
+        <div className="bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-emerald-900/40 shadow-sm p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <Activity size={18} className="text-emerald-600 dark:text-emerald-400" />
+                Live Footprint Stream
+              </h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Real-time breakdown of logged activity vectors.</p>
             </div>
-
-            <div className="space-y-3">
-              {summary?.recommendations && summary.recommendations.length > 0 ? (
-                summary.recommendations.map((rec, i) => (
-                  <div key={i} className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 space-y-1">
-                    <p className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <CheckCircle2 size={12} className="text-emerald-300 shrink-0" />
-                      {rec.title}
-                    </p>
-                    <p className="text-[10px] text-slate-200 leading-relaxed">{rec.desc || rec.description}</p>
-                  </div>
-                ))
-              ) : (
-                <div className="bg-white/10 rounded-xl p-3 text-center">
-                  <p className="text-xs text-slate-200">Log activities to generate suggestions!</p>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => navigate("/insights")}
-              className="w-full text-center text-xs font-bold text-white/90 py-2 border border-white/20 rounded-xl hover:bg-white/10 transition mt-2 focus:outline-none cursor-pointer"
-            >
-              Analyze Strategic Details
-            </button>
+            <Link to="/history" className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-0.5">
+              Full History
+              <ArrowUpRight size={13} />
+            </Link>
           </div>
 
-          {/* Achievement Badges Card */}
-          <div className="bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-emerald-900/40 p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2">
-              <Award className="text-emerald-600 dark:text-emerald-400" size={16} />
-              <h3 className="font-bold text-slate-900 dark:text-white text-sm">Your Achievement Badges</h3>
-            </div>
-            
-            {earnedBadges.length > 0 ? (
-              <div className="grid grid-cols-4 gap-3">
-                {earnedBadges.slice(0, 8).map((badge) => (
-                  <div
-                    key={badge.id}
-                    className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-150 bg-slate-50/50 hover:scale-105 transition"
-                    title={`${badge.name}: ${badge.description}`}
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
-                      <Award size={18} />
-                    </div>
-                    <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350 text-center truncate w-full mt-1.5">{badge.name}</span>
+          <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
+            {recentLogs.length > 0 ? (
+              recentLogs.map((log) => (
+                <div key={log.id} className="flex gap-4 relative">
+                  <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0 relative z-10 shadow-sm">
+                    <CategoryIcon category={log.category} />
                   </div>
-                ))}
-              </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{log.activityType}</p>
+                      <span className="text-[10px] font-bold text-slate-900 dark:text-slate-100 shrink-0 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
+                        {log.calculatedEmissionsKgCO2e?.toFixed(1)} kg CO₂
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{log.logDate}</p>
+                  </div>
+                </div>
+              ))
             ) : (
-              <div className="text-center py-4 bg-slate-50/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                <p className="text-xs text-slate-400">No achievements yet. Log activities to earn badges!</p>
+              <div className="text-center py-6">
+                <p className="text-xs text-slate-400 dark:text-slate-500">No recent activity logs. Click Quick Log above to start tracking!</p>
               </div>
             )}
           </div>
         </div>
 
+        {/* Achievement Badges Card */}
+        <div className="bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-emerald-900/40 p-6 shadow-sm space-y-4 h-fit">
+          <div className="flex items-center gap-2">
+            <Award className="text-emerald-600 dark:text-emerald-400" size={16} />
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Your Achievement Badges</h3>
+          </div>
+          
+          {earnedBadges.length > 0 ? (
+            <div className="grid grid-cols-4 gap-3">
+              {earnedBadges.slice(0, 8).map((badge) => (
+                <div
+                  key={badge.id}
+                  className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-150 bg-slate-50/50 hover:scale-105 transition"
+                  title={`${badge.name}: ${badge.description}`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
+                    <Award size={18} />
+                  </div>
+                  <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350 text-center truncate w-full mt-1.5">{badge.name}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 bg-slate-50/50 rounded-xl border border-slate-100 dark:border-slate-800">
+              <p className="text-xs text-slate-400">No achievements yet. Log activities to earn badges!</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {showGoalModal && (
-        <SetGoalModal onClose={() => setShowGoalModal(false)} onSaved={loadDashboardData} />
+        <SetGoalModal onClose={() => setShowGoalModal(false)} onSaved={loadPersonalData} />
       )}
 
       {/* Send Report Modal */}

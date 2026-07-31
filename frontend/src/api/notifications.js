@@ -19,3 +19,9 @@ export const markAllAsRead = async () => {
   const response = await api.put("/notifications/read-all");
   return response.data;
 };
+
+export const triggerMonthlyNotification = async () => {
+  const response = await api.post("/notifications/monthly");
+  return response.data;
+};
+

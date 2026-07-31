@@ -77,4 +77,11 @@ public class NotificationService {
                 .build();
         return notificationRepository.save(notification);
     }
+
+    @Transactional
+    public Notification triggerMonthlyNotification() {
+        User user = getAuthenticatedUser();
+        String msg = "Your Monthly Carbon Footprint Report is Ready. View your emission summary.";
+        return createNotification(user, msg, "monthly_report");
+    }
 }

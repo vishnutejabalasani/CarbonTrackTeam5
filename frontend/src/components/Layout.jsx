@@ -23,10 +23,12 @@ import {
   Sliders,
   Award,
   Check,
-  Eye
+  Eye,
+  Building2,
+  User,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from "../api/notifications";
+import NotificationDropdown from "./NotificationDropdown";
 import { chatWithGreenCoach } from "../api/activities";
 import { getWeatherData } from "../api/weather";
 
@@ -124,6 +126,7 @@ export default function Layout() {
       title: "Core Tracking",
       items: [
         { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+        { to: "/personal-dashboard", label: "Personal Dashboard", icon: User },
         { to: "/activity", label: "Log Footprint", icon: Plus },
         { to: "/vision", label: "Vision Analyzer", icon: Eye },
         { to: "/history", label: "Activity History", icon: History },
@@ -139,6 +142,7 @@ export default function Layout() {
     {
       title: "Analytics",
       items: [
+        { to: "/org-emissions", label: "Org Emissions", icon: Building2 },
         { to: "/insights", label: "ESG Analytics", icon: Lightbulb },
       ],
     },
@@ -346,89 +350,7 @@ export default function Layout() {
             </button>
 
             {/* Notifications */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  if (!showNotifications) fetchNotifications();
-                }}
-                className="relative p-2 text-slate-400 hover:text-slate-655 transition focus:outline-none"
-              >
-                <Bell size={16} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                )}
-              </button>
-
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-brand-950 border border-slate-200 dark:border-brand-900 rounded-2xl shadow-xl z-50 p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-brand-900/40 pb-2">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">Notifications ({unreadCount})</span>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            await markAllAsRead();
-                            fetchNotifications();
-                          } catch (err) {
-                            console.error(err);
-                          }
-                        }}
-                        className="text-[10px] font-bold text-brand-850 dark:text-brand-350 hover:underline"
-                      >
-                        Mark all read
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-60 overflow-y-auto space-y-2">
-                    {notifications.length > 0 ? (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={`flex items-start gap-2.5 p-2 rounded-xl transition text-[11px] ${
-                            n.read
-                              ? "bg-slate-50/50 dark:bg-brand-900/10 text-slate-550 dark:text-slate-400"
-                              : "bg-brand-50/20 dark:bg-brand-900/25 text-slate-800 dark:text-slate-200 font-medium"
-                          }`}
-                        >
-                          <div className="mt-0.5 shrink-0">
-                            {n.type === "badge_earned" ? (
-                              <Award size={13} className="text-amber-500" />
-                            ) : (
-                              <Flag size={13} className="text-brand-800" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="leading-relaxed break-words">{n.message}</p>
-                            <p className="text-[9px] text-slate-400 mt-0.5">
-                              {new Date(n.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          {!n.read && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await markAsRead(n.id);
-                                  fetchNotifications();
-                                } catch (err) {
-                                  console.error(err);
-                                }
-                              }}
-                              className="text-slate-400 hover:text-brand-850 p-0.5"
-                              title="Mark as read"
-                            >
-                              <Check size={11} />
-                            </button>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-[11px] text-slate-400 text-center py-4">No notifications yet.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <NotificationDropdown />
 
             {/* Quick Add Log Activity */}
             <NavLink
