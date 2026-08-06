@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { User, Shield, Sparkles, Bell, ToggleLeft, ToggleRight, Check, Key, Building2, Copy, ClipboardCheck } from "lucide-react";
+import { User, Shield, Sparkles, Bell, ToggleLeft, ToggleRight, Check, Key, Building2, Copy, ClipboardCheck, Globe } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "../components/LanguageSelector";
 
 export default function Settings() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("profile"); // "profile" | "org" | "security" | "api"
 
   // States
@@ -238,6 +241,20 @@ export default function Settings() {
 
           {activeTab === "security" && (
             <form onSubmit={handleSave} className="space-y-6">
+              {/* Language Preferences Card */}
+              <div className="bg-slate-50/70 dark:bg-brand-900/10 border border-slate-200/80 dark:border-brand-900/40 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <Globe size={16} className="text-brand-700 dark:text-brand-400" />
+                  <div>
+                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">{t("settings.languageHeader")}</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{t("settings.languageDesc")}</p>
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <LanguageSelector variant="settings" />
+                </div>
+              </div>
+
               <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
                 <Shield size={15} className="text-brand-850" />
                 Preferences & Visibilities

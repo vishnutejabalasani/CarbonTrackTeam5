@@ -4,7 +4,10 @@ import { getWeeklySummary } from "../api/activities";
 import { getEmissionsByCategory, getEmissionsByDate, getPeerBenchmarking, getOrganizationDashboard } from "../api/analytics";
 import { CategoryPieChart, DailyEmissionsChart } from "../components/Charts";
 
+import { useTranslation } from "react-i18next";
+
 export default function Insights() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("personal");
   const [summary, setSummary] = useState(null);
   const [categoryData, setCategoryData] = useState([]);
@@ -108,8 +111,8 @@ export default function Insights() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Carbon Analytics & ESG Insights</h1>
-          <p className="text-slate-500 text-sm mt-1">Deep analysis of operational carbon variables, peer averages, and AI projections.</p>
+          <h1 className="text-2xl font-semibold text-slate-900">{t("insights.title")}</h1>
+          <p className="text-slate-500 text-sm mt-1">{t("insights.subtitle")}</p>
         </div>
         <div className="flex bg-slate-100 p-1 rounded-xl shrink-0 self-start">
           <button

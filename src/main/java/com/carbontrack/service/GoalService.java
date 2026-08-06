@@ -2,6 +2,7 @@ package com.carbontrack.service;
 
 import com.carbontrack.dto.GoalRequest;
 import com.carbontrack.dto.GoalResponse;
+import com.carbontrack.dto.GoalTrajectoryPoint;
 import com.carbontrack.entity.ActivityLog;
 import com.carbontrack.entity.Goal;
 import com.carbontrack.entity.User;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -200,6 +202,95 @@ public class GoalService {
             ? "Warning: Your emissions exceed the allowed pace of your carbon reduction target!" 
             : null;
 
+        User user = goal.getUser();
+        LocalDate start = goal.getStartDate();
+        LocalDate end = goal.getEndDate();
+        LocalDate now = LocalDate.now();
+
+        long totalDays = days > 0 ? days : 7;
+        long elapsedDays = ChronoUnit.DAYS.between(start, now);
+        if (elapsedDays < 0) elapsedDays = 0;
+        if (elapsedDays > totalDays) elapsedDays = totalDays;
+        long remainingDays = totalDays - elapsedDays;
+        if (remainingDays < 0) remainingDays = 0;
+
+        double baseline = (totalDays <= 10) ? calculateWeeklyBaseline(user, start) : calculateMonthlyBaseline(user, start);
+        double targetReductionPercent = goal.getTargetReductionPercentage();
+        double targetEmissions = baseline * (1.0 - (targetReductionPercent / 100.0));
+
+        LocalDate queryEnd = now.isBefore(end) ? now : end;
+        Double currentEmissionsVal = activityRepository.sumByUserAndDateRange(user, start, queryEnd);
+        double currentEmissions = currentEmissionsVal != null ? currentEmissionsVal : 0.0;
+
+        // Recent daily average over last 3 days
+        LocalDate threeDaysAgo = now.minusDays(2);
+        LocalDate trendStart = start.isAfter(threeDaysAgo) ? start : threeDaysAgo;
+        long trendDays = ChronoUnit.DAYS.between(trendStart, now) + 1;
+        Double recentEmissionsSumVal = activityRepository.sumByUserAndDateRange(user, trendStart, now);
+        double recentEmissionsSum = recentEmissionsSumVal != null ? recentEmissionsSumVal : 0.0;
+        double recentDailyAvg = recentEmissionsSum / Math.max(1, trendDays);
+
+        double dailyAllowedEmissions = targetEmissions / Math.max(1, totalDays);
+        double remainingBudget = Math.max(0.0, targetEmissions - currentEmissions);
+        double maxDailyAllowedRemaining = remainingDays > 0 ? (remainingBudget / remainingDays) : 0.0;
+        double dailyReductionRequired = recentDailyAvg - maxDailyAllowedRemaining;
+
+        double projectedRemaining = recentDailyAvg * remainingDays;
+        double projectedTotalEmissions = currentEmissions + projectedRemaining;
+
+        // Build trajectory data points
+        List<Object[]> dailyAgg = activityRepository.aggregateEmissionsByDate(user, start, queryEnd);
+        java.util.Map<LocalDate, Double> dailyEmissionsMap = new java.util.HashMap<>();
+        if (dailyAgg != null) {
+            for (Object[] row : dailyAgg) {
+                if (row != null && row.length >= 2 && row[0] instanceof LocalDate && row[1] instanceof Number) {
+                    dailyEmissionsMap.put((LocalDate) row[0], ((Number) row[1]).doubleValue());
+                }
+            }
+        }
+
+        List<GoalTrajectoryPoint> trajectoryData = new ArrayList<>();
+        double runningActual = 0.0;
+        double stepTarget = targetEmissions / Math.max(1, totalDays);
+
+        for (int i = 0; i <= totalDays; i++) {
+            LocalDate dayDate = start.plusDays(i);
+            boolean isFuture = dayDate.isAfter(now);
+            String dayLabel = dayDate.getDayOfWeek().toString().substring(0, 3) + " " + dayDate.getDayOfMonth();
+            double targetLimit = Math.round(stepTarget * (i + 1) * 10.0) / 10.0;
+
+            if (!isFuture) {
+                double dayVal = dailyEmissionsMap.getOrDefault(dayDate, 0.0);
+                runningActual += dayVal;
+                double actualRounded = Math.round(dayVal * 10.0) / 10.0;
+                double cumRounded = Math.round(runningActual * 10.0) / 10.0;
+
+                trajectoryData.add(GoalTrajectoryPoint.builder()
+                        .date(dayDate)
+                        .dayLabel(dayLabel)
+                        .actualEmissions(actualRounded)
+                        .cumulativeActual(cumRounded)
+                        .targetLimit(targetLimit)
+                        .projectedEmissions(cumRounded)
+                        .isFuture(false)
+                        .build());
+            } else {
+                long daysAhead = ChronoUnit.DAYS.between(now, dayDate);
+                double projVal = currentEmissions + (recentDailyAvg * daysAhead);
+                double projRounded = Math.round(projVal * 10.0) / 10.0;
+
+                trajectoryData.add(GoalTrajectoryPoint.builder()
+                        .date(dayDate)
+                        .dayLabel(dayLabel)
+                        .actualEmissions(null)
+                        .cumulativeActual(null)
+                        .targetLimit(targetLimit)
+                        .projectedEmissions(projRounded)
+                        .isFuture(true)
+                        .build());
+            }
+        }
+
         return GoalResponse.builder()
                 .id(goal.getId())
                 .title(goal.getTitle())
@@ -212,6 +303,15 @@ public class GoalService {
                 .endDate(goal.getEndDate())
                 .status(goal.getStatus())
                 .alertMessage(alertMessage)
+                .baselineEmissions(Math.round(baseline * 10.0) / 10.0)
+                .currentEmissions(Math.round(currentEmissions * 10.0) / 10.0)
+                .targetEmissions(Math.round(targetEmissions * 10.0) / 10.0)
+                .dailyAllowedEmissions(Math.round(dailyAllowedEmissions * 10.0) / 10.0)
+                .recentDailyAvgEmissions(Math.round(recentDailyAvg * 10.0) / 10.0)
+                .dailyReductionRequired(Math.round(dailyReductionRequired * 10.0) / 10.0)
+                .remainingDays(remainingDays)
+                .projectedTotalEmissions(Math.round(projectedTotalEmissions * 10.0) / 10.0)
+                .trajectoryData(trajectoryData)
                 .build();
     }
 }

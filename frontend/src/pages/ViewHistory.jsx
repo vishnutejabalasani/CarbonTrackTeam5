@@ -34,7 +34,10 @@ const CATEGORIES = [
   { key: "shopping", label: "Shopping" },
 ];
 
+import { useTranslation } from "react-i18next";
+
 export default function ViewHistory() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("activities"); // "activities" | "esgReports"
 
   // Activity Logs state
@@ -203,9 +206,9 @@ export default function ViewHistory() {
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Footprint Ledger & Audit History</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("history.title")}</h1>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">
-              Audit log of corporate emissions, activity history, and saved ESG reports.
+              {t("history.subtitle")}
             </p>
           </div>
         </div>

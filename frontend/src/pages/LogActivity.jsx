@@ -112,7 +112,10 @@ const CONFIDENCE_COLOR = (c) => {
   return "text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50";
 };
 
+import { useTranslation } from "react-i18next";
+
 export default function LogActivity() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -468,8 +471,8 @@ export default function LogActivity() {
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Record Operational Footprint</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Log carbon variables across departments, office locations, and personal assets.</p>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{t("activity.title")}</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t("activity.subtitle")}</p>
       </div>
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-8">

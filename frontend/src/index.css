@@ -253,3 +253,60 @@ body {
 .animate-shimmer {
   animation: badge-shimmer 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+/* Dashboard Loading Keyframes & Shimmer Skeletons */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes orbit-spin {
+  0% {
+    transform: rotate(0deg) translateX(70px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(70px) rotate(-360deg);
+  }
+}
+
+@keyframes orbit-spin-reverse {
+  0% {
+    transform: rotate(360deg) translateX(100px) rotate(-360deg);
+  }
+  100% {
+    transform: rotate(0deg) translateX(100px) rotate(0deg);
+  }
+}
+
+@keyframes loader-progress {
+  0% {
+    width: 5%;
+  }
+  50% {
+    width: 70%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 2s infinite linear;
+}
+
+.animate-orbit {
+  animation: orbit-spin 12s linear infinite;
+}
+
+.animate-orbit-reverse {
+  animation: orbit-spin-reverse 16s linear infinite;
+}
+
+.animate-loader-progress {
+  animation: loader-progress 1.8s ease-in-out infinite;
+}
+

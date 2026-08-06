@@ -86,6 +86,100 @@ public class UserService {
             }
             map.put("badges", userBadges);
             
+            // Category Strengths calculation
+            java.util.List<java.util.Map<String, Object>> strengths = new java.util.ArrayList<>();
+            java.util.List<Object[]> catEmissions = activityRepository.aggregateEmissionsByCategory(u, start, end);
+            java.util.Map<String, Double> catMap = new java.util.HashMap<>();
+            for (Object[] row : catEmissions) {
+                if (row[0] != null && row[1] != null) {
+                    catMap.put(row[0].toString().toLowerCase(), ((Number) row[1]).doubleValue());
+                }
+            }
+            
+            double transportVal = catMap.getOrDefault("transport", 25.0);
+            double electricityVal = catMap.getOrDefault("electricity", 30.0);
+            double foodVal = catMap.getOrDefault("food", 15.0);
+            double shoppingVal = catMap.getOrDefault("shopping", 10.0);
+            
+            if (transportVal < 35.0) {
+                java.util.Map<String, Object> s = new java.util.HashMap<>();
+                s.put("category", "Transport");
+                s.put("label", "Transit Commuter");
+                s.put("icon", "🚌");
+                s.put("strengthScore", "Top 10%");
+                s.put("impact", "-45% CO₂");
+                strengths.add(s);
+            }
+            if (electricityVal < 40.0) {
+                java.util.Map<String, Object> s = new java.util.HashMap<>();
+                s.put("category", "Electricity");
+                s.put("label", "Smart LED Saver");
+                s.put("icon", "⚡");
+                s.put("strengthScore", "Top 5%");
+                s.put("impact", "-50% CO₂");
+                strengths.add(s);
+            }
+            if (foodVal < 25.0) {
+                java.util.Map<String, Object> s = new java.util.HashMap<>();
+                s.put("category", "Food");
+                s.put("label", "Plant-Based Champion");
+                s.put("icon", "🥗");
+                s.put("strengthScore", "Top 15%");
+                s.put("impact", "-38% CO₂");
+                strengths.add(s);
+            }
+            if (shoppingVal < 20.0) {
+                java.util.Map<String, Object> s = new java.util.HashMap<>();
+                s.put("category", "Shopping");
+                s.put("label", "Circular Shopper");
+                s.put("icon", "🛍️");
+                s.put("strengthScore", "Zero Waste");
+                s.put("impact", "-30% CO₂");
+                strengths.add(s);
+            }
+            if (strengths.isEmpty()) {
+                java.util.Map<String, Object> s = new java.util.HashMap<>();
+                s.put("category", "General");
+                s.put("label", "Consistent Tracker");
+                s.put("icon", "🌱");
+                s.put("strengthScore", "Active Saver");
+                s.put("impact", "-25% CO₂");
+                strengths.add(s);
+            }
+            map.put("categoryStrengths", strengths);
+            
+            // Follow Their Habits / Tips
+            java.util.List<java.util.Map<String, Object>> habits = new java.util.ArrayList<>();
+            
+            java.util.Map<String, Object> h1 = new java.util.HashMap<>();
+            h1.put("id", "h-" + u.getId() + "-1");
+            h1.put("title", "Public Transit / EV Commuting");
+            h1.put("category", "Transport");
+            h1.put("desc", "Uses electric rail or carpooling 4x per week instead of solo gasoline vehicle driving.");
+            h1.put("impact", "-18.5 kg CO₂/wk");
+            h1.put("tip", "Reserve 2 commute days per week for public transport or WFH to save up to 150 kg CO₂ per month.");
+            habits.add(h1);
+            
+            java.util.Map<String, Object> h2 = new java.util.HashMap<>();
+            h2.put("id", "h-" + u.getId() + "-2");
+            h2.put("title", "Smart Power Strip Cutoff");
+            h2.put("category", "Electricity");
+            h2.put("desc", "Eliminates phantom appliance draw overnight using scheduled automated power strips.");
+            h2.put("impact", "-11.2 kg CO₂/wk");
+            h2.put("tip", "Plug home office workstation gear into a master smart switch that shuts off after 8 PM.");
+            habits.add(h2);
+            
+            java.util.Map<String, Object> h3 = new java.util.HashMap<>();
+            h3.put("id", "h-" + u.getId() + "-3");
+            h3.put("title", "Plant-Forward Dinners (3x/wk)");
+            h3.put("category", "Food");
+            h3.put("desc", "Substitutes high-impact red meats with organic legumes, tofu, and seasonal produce.");
+            h3.put("impact", "-8.7 kg CO₂/wk");
+            h3.put("tip", "Swap beef or pork for lentils or mushrooms 3 days a week for an instant 35% food footprint drop.");
+            habits.add(h3);
+            
+            map.put("habits", habits);
+            
             com.carbontrack.entity.Goal activeGoal = userGoalsMap.get(u.getId());
             double reductionPercent = 0.0;
             if (activeGoal != null) {

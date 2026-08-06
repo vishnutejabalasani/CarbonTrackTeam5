@@ -40,7 +40,10 @@ import MonthlyProgressWidget from "../components/MonthlyProgressWidget";
 import LottieAnimation from "../components/LottieAnimation";
 import { sustainabilityAnimationData } from "../assets/animations/sustainabilityData";
 
+import { useTranslation } from "react-i18next";
+
 export default function PersonalDashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [summary, setSummary] = useState(null);
@@ -234,11 +237,11 @@ export default function PersonalDashboard() {
 
           <div className="space-y-2">
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight flex items-center gap-2">
-              Personal Carbon Footprint Summary
+              {t("nav.personalDashboard")}
               <span className="text-2xl animate-float-gentle inline-block">🌿</span>
             </h1>
             <p className="text-slate-300/90 text-sm max-w-xl leading-relaxed">
-              Track your daily emissions, compare current vs previous week trends, and monitor monthly target progress.
+              {t("dashboard.subtitle")}
             </p>
           </div>
 

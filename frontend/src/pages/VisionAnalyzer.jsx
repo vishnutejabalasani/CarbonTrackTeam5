@@ -23,7 +23,10 @@ const CATEGORY_COLORS = {
 
 const CATEGORY_ICONS = { Transport: "🚗", Food: "🍽️", Electricity: "⚡", Shopping: "🛍️", Waste: "♻️", Industrial: "🏭", Other: "🌿" };
 
+import { useTranslation } from "react-i18next";
+
 export default function VisionAnalyzer() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("analyze"); // "analyze" or "history"
   const [dragActive, setDragActive] = useState(false);
   const [imageFile, setImageFile] = useState(null);
@@ -204,9 +207,9 @@ export default function VisionAnalyzer() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            <Eye size={22} className="text-brand-700" /> AI Carbon Vision Analyzer
+            <Eye size={22} className="text-brand-700" /> {t("vision.title")}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Upload any photo to instantly detect carbon-emitting activities using Gemini Vision AI.</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t("vision.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button

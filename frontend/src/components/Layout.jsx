@@ -28,11 +28,15 @@ import {
   User,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "./LanguageSelector";
 import NotificationDropdown from "./NotificationDropdown";
 import { chatWithGreenCoach } from "../api/activities";
 import { getWeatherData } from "../api/weather";
+import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from "../api/notifications";
 
 export default function Layout() {
+  const { t } = useTranslation();
   const { logout, user } = useAuth();
   const [weather, setWeather] = useState({
     temp: 22,
@@ -123,43 +127,43 @@ export default function Layout() {
   // Grouped Navigation Items
   const sections = [
     {
-      title: "Core Tracking",
+      title: t("nav.coreTracking"),
       items: [
-        { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-        { to: "/personal-dashboard", label: "Personal Dashboard", icon: User },
-        { to: "/activity", label: "Log Footprint", icon: Plus },
-        { to: "/vision", label: "Vision Analyzer", icon: Eye },
-        { to: "/history", label: "Activity History", icon: History },
+        { to: "/dashboard", label: t("nav.dashboard"), icon: LayoutGrid },
+        { to: "/personal-dashboard", label: t("nav.personalDashboard"), icon: User },
+        { to: "/activity", label: t("nav.logFootprint"), icon: Plus },
+        { to: "/vision", label: t("nav.visionAnalyzer"), icon: Eye },
+        { to: "/history", label: t("nav.activityHistory"), icon: History },
       ],
     },
     {
-      title: "Goals & Social",
+      title: t("nav.goalsSocial"),
       items: [
-        { to: "/goals", label: "Eco Goals", icon: Flag },
-        { to: "/community", label: "Community & Standings", icon: Users },
+        { to: "/goals", label: t("nav.ecoGoals"), icon: Flag },
+        { to: "/community", label: t("nav.community"), icon: Users },
       ],
     },
     {
-      title: "Analytics",
+      title: t("nav.analytics"),
       items: [
-        { to: "/org-emissions", label: "Org Emissions", icon: Building2 },
-        { to: "/insights", label: "ESG Analytics", icon: Lightbulb },
+        { to: "/org-emissions", label: t("nav.orgEmissions"), icon: Building2 },
+        { to: "/insights", label: t("nav.esgAnalytics"), icon: Lightbulb },
       ],
     },
     {
-      title: "Settings",
+      title: t("nav.settings"),
       items: [
-        { to: "/settings", label: "Preferences", icon: Settings },
+        { to: "/settings", label: t("nav.preferences"), icon: Settings },
       ],
     },
   ];
 
   return (
-    <div className={`min-h-screen flex ${darkMode ? "dark bg-slate-950 text-slate-100" : "bg-[#f5f8f5] text-slate-900"}`}>
+    <div className={`h-screen w-screen overflow-hidden flex ${darkMode ? "dark bg-slate-950 text-slate-100" : "bg-[#f5f8f5] text-slate-900"}`}>
       
-      {/* Floating Glass Sidebar */}
+      {/* Floating Glass Sidebar (Static & Fixed) */}
       <aside
-        className={`relative m-4 rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-md shadow-lg flex flex-col p-4 shrink-0 transition-all duration-300 dark:bg-brand-950/45 dark:border-brand-900/40 ${
+        className={`h-[calc(100vh-2rem)] m-4 rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-md shadow-lg flex flex-col p-4 shrink-0 transition-all duration-300 sticky top-4 z-30 dark:bg-brand-950/45 dark:border-brand-900/40 ${
           collapsed ? "w-20" : "w-64"
         }`}
       >
@@ -297,16 +301,16 @@ export default function Layout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Top Premium Navbar */}
-        <header className="h-16 bg-white/80 dark:bg-brand-950/45 backdrop-blur-md border-b border-slate-200/50 dark:border-brand-900/40 flex items-center justify-between px-8 shrink-0 relative z-20">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Top Premium Navbar (Static & Fixed) */}
+        <header className="h-16 bg-white/80 dark:bg-brand-950/45 backdrop-blur-md border-b border-slate-200/50 dark:border-brand-900/40 flex items-center justify-between px-8 shrink-0 sticky top-0 z-20">
           {/* Left: Global Search & AI Assistant */}
           <div className="flex items-center gap-4 w-96">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400" size={14} />
               <input
                 type="text"
-                placeholder="Search analytics, carbon goals, activity..."
+                placeholder={t("header.searchPlaceholder")}
                 className="w-full bg-slate-50 dark:bg-brand-900/10 border border-slate-200 dark:border-brand-900/40 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 dark:focus:border-brand-800 focus:bg-white dark:focus:bg-brand-950 transition text-slate-800 dark:text-slate-100"
               />
             </div>
@@ -315,14 +319,14 @@ export default function Layout() {
               className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-brand-800 to-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition shrink-0"
             >
               <Sparkles size={13} className="animate-pulse" />
-              Ask AI
+              {t("header.askAi")}
             </button>
           </div>
 
-          {/* Right: Weather, Carbon Score, Notifications, Quick Add */}
-          <div className="flex items-center gap-5">
+          {/* Right: Weather, Carbon Score, Language, Dark Mode, Notifications, Quick Add */}
+          <div className="flex items-center gap-4">
             {/* Weather & AQI Widget */}
-            <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-slate-50 dark:bg-brand-900/10 border border-slate-200/60 dark:border-brand-900/40 rounded-xl text-[11px] font-medium text-slate-600 dark:text-slate-450" title={`Weather for ${weather.cityName}`}>
+            <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-slate-50 dark:bg-brand-900/10 border border-slate-200/60 dark:border-brand-900/40 rounded-xl text-[11px] font-medium text-slate-600 dark:text-slate-450" title={`${t("header.weatherIn")} ${weather.cityName}`}>
               <span className="flex items-center gap-1">
                 <Sun size={12} className="text-amber-500" />
                 {weather.temp}°C ({weather.description})
@@ -330,15 +334,18 @@ export default function Layout() {
               <span className="w-px h-3 bg-slate-200 dark:bg-brand-900/40" />
               <span className={`flex items-center gap-1 ${weather.aqiColor.split(" ").slice(0, 2).join(" ")}`}>
                 <Leaf size={11} />
-                AQI: {weather.aqiLabel}
+                {t("header.aqi")}: {weather.aqiLabel}
               </span>
             </div>
 
              {/* Carbon Score Pill */}
             <div className="px-3 py-1.5 bg-brand-50 border border-brand-100 rounded-xl text-[11px] font-extrabold text-brand-850 flex items-center gap-1.5 dark:bg-brand-950/40 dark:border-brand-900 dark:text-brand-300">
-              <span>Carbon Score</span>
+              <span>{t("header.carbonScore")}</span>
               <span className="px-1.5 py-0.5 rounded bg-brand-800 text-white font-black text-[9px]">A+</span>
             </div>
+
+            {/* Language Selector Dropdown */}
+            <LanguageSelector variant="header" />
 
             {/* Dark Mode Toggle */}
             <button
@@ -358,7 +365,7 @@ export default function Layout() {
               className="flex items-center gap-1 px-3 py-2 bg-brand-800 hover:bg-brand-900 text-white text-xs font-bold rounded-xl shadow-sm transition"
             >
               <Plus size={14} />
-              Quick Log
+              {t("header.quickLog")}
             </NavLink>
           </div>
         </header>
@@ -377,7 +384,7 @@ export default function Layout() {
             className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-800 to-teal-700 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition duration-300 font-bold text-xs"
           >
             <Sparkles size={14} className="animate-pulse" />
-            <span>Green Coach</span>
+            <span>{t("coach.title")}</span>
           </button>
         ) : (
           <div className="w-80 h-96 bg-white/95 dark:bg-brand-950/95 backdrop-blur border border-slate-200 dark:border-brand-900/40 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
@@ -385,7 +392,7 @@ export default function Layout() {
             <div className="bg-brand-900 dark:bg-brand-950 text-white p-3 flex items-center justify-between border-b border-brand-850 dark:border-brand-900">
               <div className="flex items-center gap-1.5">
                 <Sparkles size={14} className="text-emerald-400" />
-                <span className="text-xs font-black">AI Green Coach</span>
+                <span className="text-xs font-black">{t("coach.title")}</span>
               </div>
               <button
                 onClick={() => setShowChat(false)}
@@ -409,7 +416,7 @@ export default function Layout() {
                         : "bg-slate-100 dark:bg-brand-900/40 text-slate-800 dark:text-slate-200 border border-slate-200/40 dark:border-brand-900/30 shadow-sm"
                     }`}
                   >
-                    {m.text}
+                    {idx === 0 && m.sender === "bot" ? t("coach.greeting") : m.text}
                   </div>
                 </div>
               ))}
@@ -419,14 +426,14 @@ export default function Layout() {
                 <div className="pt-2 space-y-1.5 animate-fade-in">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 flex items-center gap-1">
                     <Sparkles size={11} className="text-amber-500" />
-                    Recommended Suggestions:
+                    {t("coach.suggestions")}
                   </p>
                   <div className="flex flex-col gap-1.5">
                     {[
-                      { icon: "💡", text: "How can I reduce transport emissions by 20%?" },
-                      { icon: "🥗", text: "What are low-carbon food alternatives?" },
-                      { icon: "⚡", text: "Tips to cut household electricity footprint" },
-                      { icon: "🌿", text: "How is my carbon score rating calculated?" },
+                      { icon: "💡", text: t("coach.q1") },
+                      { icon: "🥗", text: t("coach.q2") },
+                      { icon: "⚡", text: t("coach.q3") },
+                      { icon: "🌿", text: t("coach.q4") },
                     ].map((prompt, idx) => (
                       <button
                         key={idx}
@@ -459,7 +466,7 @@ export default function Layout() {
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask me something..."
+                placeholder={t("coach.askSomething")}
                 className="flex-1 border border-slate-200 dark:border-brand-900/40 bg-slate-50 dark:bg-brand-900/10 rounded-lg px-2.5 py-1.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-brand-500 focus:bg-white dark:focus:bg-brand-950 transition text-slate-800 dark:text-slate-100"
               />
               <button

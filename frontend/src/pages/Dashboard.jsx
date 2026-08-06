@@ -43,7 +43,10 @@ import WeeklyEmissionsChart from "../components/WeeklyEmissionsChart";
 import LottieAnimation from "../components/LottieAnimation";
 import { sustainabilityAnimationData } from "../assets/animations/sustainabilityData";
 
+import { useTranslation } from "react-i18next";
+
 export default function Dashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [summary, setSummary] = useState(null);
@@ -236,11 +239,11 @@ export default function Dashboard() {
 
           <div className="space-y-2">
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight flex items-center gap-2">
-              CarbonTrack Sustainability Dashboard
+              {t("dashboard.title")}
               <span className="text-2xl animate-float-gentle inline-block">🌿</span>
             </h1>
             <p className="text-slate-300/90 text-sm max-w-xl leading-relaxed">
-              Central hub for personal carbon footprint tracking, organizational total emissions reporting, and AI-driven sustainability analytics.
+              {t("dashboard.subtitle")}
             </p>
           </div>
 

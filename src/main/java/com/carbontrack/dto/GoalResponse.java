@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,4 +24,15 @@ public class GoalResponse {
     private LocalDate endDate;
     private String status;
     private String alertMessage;
+
+    // Detailed metrics for Goal Tracking Widget
+    private Double baselineEmissions;
+    private Double currentEmissions;
+    private Double targetEmissions;
+    private Double dailyAllowedEmissions;
+    private Double recentDailyAvgEmissions;
+    private Double dailyReductionRequired;
+    private Long remainingDays;
+    private Double projectedTotalEmissions;
+    private List<GoalTrajectoryPoint> trajectoryData;
 }

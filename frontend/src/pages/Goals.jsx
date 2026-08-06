@@ -34,6 +34,7 @@ import {
 import { getCurrentGoal, getGoalHistory } from "../api/goals";
 import { getAllBadges, getEarnedBadges } from "../api/badges";
 import SetGoalModal from "../components/SetGoalModal";
+import GoalTrackingWidget from "../components/GoalTrackingWidget";
 
 const ENTERPRISE_BADGE_CONFIG = {
   "First Step": {
@@ -164,7 +165,10 @@ const ENTERPRISE_BADGE_CONFIG = {
   },
 };
 
+import { useTranslation } from "react-i18next";
+
 export default function Goals() {
+  const { t } = useTranslation();
   const [currentGoal, setCurrentGoal] = useState(null);
   const [history, setHistory] = useState([]);
   const [allBadges, setAllBadges] = useState([]);
@@ -245,41 +249,15 @@ const TIER_ORDER = {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-800">
       
-      {/* Real Enterprise Header Banner */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck size={13} className="text-emerald-600" /> Enterprise ESG Certified
-            </span>
-            <span className="text-xs text-slate-300">·</span>
-            <span className="text-xs text-slate-500 font-semibold">
-              <strong className="text-slate-900 font-black">{earnedBadges.length}</strong> of {allBadges.length} Collectible Credentials Unlocked
-            </span>
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Milestones & Corporate Credentials</h1>
-          <p className="text-slate-500 text-xs max-w-2xl leading-relaxed">
-            Monitor real-time carbon reduction limits, calculate virtual tree absorption metrics, and view collectible corporate ESG credentials.
+      {/* Clean Page Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Target className="text-emerald-700" size={26} /> {t("goals.title")}
+          </h1>
+          <p className="text-slate-500 text-xs mt-1">
+            {t("goals.subtitle")}
           </p>
-        </div>
-
-        {/* Real KPI Quick Stats Row */}
-        <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-center min-w-[110px]">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Target Rate</span>
-            <span className="text-base font-black text-brand-850">{progressPercent}% Met</span>
-          </div>
-          <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-center min-w-[110px]">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Active Saplings</span>
-            <span className="text-base font-black text-emerald-700">{saplingsCount} Saplings 🌳</span>
-          </div>
-          <button
-            onClick={() => setShowGoalModal(true)}
-            className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl px-5 py-3 text-xs font-bold shadow-sm transition shrink-0"
-          >
-            <Plus size={16} />
-            Create Target
-          </button>
         </div>
       </div>
 
@@ -288,126 +266,11 @@ const TIER_ORDER = {
         {/* Left Side: Active Reduction Target & Reforestation */}
         <div className="space-y-8">
           
-          {/* Active Target Card with Real Enterprise Metrics */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <h2 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <Target className="text-emerald-700" size={18} />
-                Active Reduction Target Benchmark
-              </h2>
-              {currentGoal ? (
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border ${
-                  currentGoal.onTrack
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                    : "bg-rose-50 text-rose-800 border-rose-200"
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${currentGoal.onTrack ? "bg-emerald-500 animate-pulse" : "bg-rose-500 animate-pulse"}`} />
-                  {currentGoal.onTrack ? "ON TRACK (LIVE)" : "OFF TRACK"}
-                </span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">
-                  INACTIVE
-                </span>
-              )}
-            </div>
-
-            {currentGoal ? (
-              <div className="space-y-6">
-                <div className="grid sm:grid-cols-[auto_1fr] gap-8 items-center">
-                  {/* SVG Circular Progress Ring */}
-                  <div className="relative w-36 h-36 flex items-center justify-center shrink-0 mx-auto">
-                    <svg className="w-full h-full transform -rotate-90">
-                      <circle cx="72" cy="72" r={radius} className="stroke-slate-100" strokeWidth="10" fill="transparent" />
-                      <circle
-                        cx="72"
-                        cy="72"
-                        r={radius}
-                        className="stroke-emerald-600 transition-all duration-700 ease-out"
-                        strokeWidth="10"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={strokeDashoffset}
-                        strokeLinecap="round"
-                        fill="transparent"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className="text-3xl font-black text-slate-900 tracking-tight">{progressPercent}%</span>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Met</span>
-                    </div>
-                  </div>
-
-                  {/* Goal Metadata Grid */}
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-extrabold text-slate-900 text-base leading-snug">{currentGoal.title}</h3>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 flex items-center gap-1.5">
-                        <Calendar size={12} className="text-emerald-700" /> Timeframe: {currentGoal.timeframe}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-                      <div>
-                        <p className="text-[9px] uppercase font-bold text-slate-400">Start Date</p>
-                        <p className="font-extrabold text-slate-800 mt-0.5">{currentGoal.startDate}</p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] uppercase font-bold text-slate-400">Target End</p>
-                        <p className="font-extrabold text-slate-800 mt-0.5">{currentGoal.endDate}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sub-KPI Metric Cards */}
-                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100 text-center">
-                  <div className="bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl">
-                    <span className="text-[9px] font-bold text-emerald-800 uppercase block">Status</span>
-                    <span className="text-xs font-black text-emerald-900">{currentGoal.onTrack ? "On Track" : "Off Track"}</span>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Category</span>
-                    <span className="text-xs font-black text-slate-800 capitalize">{currentGoal.category || "Weekly Limits"}</span>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Target Goal</span>
-                    <span className="text-xs font-black text-slate-800">{currentGoal.targetValue || "20% Reduction"}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Clean Real Setup Card */
-              <div className="text-center py-10 px-6 space-y-4 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200/80 shadow-sm">
-                  <Sprout size={32} />
-                </div>
-                <div className="max-w-md mx-auto">
-                  <h3 className="text-sm font-extrabold text-slate-900">No Active Carbon Target Set</h3>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Define a target weekly reduction limit to enable real-time tracking, generate compliance logs, and earn tree sapling rewards.
-                  </p>
-                </div>
-
-                {/* Quick presets */}
-                <div className="flex flex-wrap justify-center gap-2 pt-1">
-                  <button onClick={() => setShowGoalModal(true)} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-[11px] font-bold hover:border-brand-850 transition">
-                    🌱 -15% Transport Footprint
-                  </button>
-                  <button onClick={() => setShowGoalModal(true)} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-[11px] font-bold hover:border-brand-850 transition">
-                    ⚡ -20% Energy Usage
-                  </button>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    onClick={() => setShowGoalModal(true)}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl px-5 py-2.5 text-xs font-bold shadow-sm transition"
-                  >
-                    Configure Carbon Target
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Real Goal Tracking Widget with Footprint Progress & Timeline Projection */}
+          <GoalTrackingWidget
+            currentGoal={currentGoal}
+            onCreateGoal={() => setShowGoalModal(true)}
+          />
 
           {/* Tree Growth Reforestation Canopy (Enterprise Forest Green) */}
           <div className="bg-gradient-to-br from-brand-900 via-brand-850 to-emerald-950 text-white rounded-2xl p-6 shadow-md space-y-4 relative overflow-hidden">

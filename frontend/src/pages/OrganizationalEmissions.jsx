@@ -27,7 +27,10 @@ import { generateEsgPdfReport } from "../utils/pdfExport";
 import { generateEsgExcelReport } from "../utils/excelExport";
 import { toast } from "react-hot-toast";
 
+import { useTranslation } from "react-i18next";
+
 export default function OrganizationalEmissions() {
+  const { t } = useTranslation();
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [chartData, setChartData] = useState({ pieData: [], barData: [], lineData: [] });
   const [loading, setLoading] = useState(true);
@@ -43,7 +46,7 @@ export default function OrganizationalEmissions() {
     } catch (err) {
       console.error("Failed to load organizational emissions:", err);
       toast.error("Could not fetch organizational emissions chart data.");
-    } fontinally: {
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -133,11 +136,11 @@ export default function OrganizationalEmissions() {
 
           <div className="space-y-2">
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight flex items-center gap-2">
-              Organizational Total Footprint
+              {t("org.title")}
               <span className="text-2xl inline-block animate-float-gentle">🏢</span>
             </h1>
             <p className="text-slate-300/90 text-sm max-w-2xl leading-relaxed">
-              Consolidated enterprise carbon footprint tracking by operational vector, monthly historical emissions, and 12-week emission trendlines.
+              {t("org.subtitle")}
             </p>
           </div>
 
